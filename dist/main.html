@@ -3,29 +3,153 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ABC</title>
-  <script type="module" crossorigin src="/assets/main-DaY1p6hH.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/main-CxLp6WGu.js">
-  <link rel="stylesheet" crossorigin href="/assets/main-JNtCaBBq.css">
+<title>ABC — Adaptive Exercise Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #2d1f16;
+    --surface: #433528;
+    --surface2: #574334;
+    --border: #7a5f4f;
+    --accent: #c9a77b;
+    --accent2: #d6b992;
+    --accent3: #a67a53;
+    --text: #f4ede3;
+    --muted: #beac9c;
+    --radius: 12px;
+    --mono: 'DM Mono', monospace;
+    --serif: 'Fraunces', serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--mono); min-height: 100vh; display: flex; flex-direction: column; }
+
+  header { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .logo { font-family: var(--mono); font-weight: 600; font-size: 22px; letter-spacing: -0.5px; color: var(--accent); }
+  .logo span { color: var(--text); font-style: italic; font-weight: 300; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; margin-right: 8px; transition: background 0.3s; }
+  .status-dot.live { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .header-status { font-size: 12px; color: var(--muted); display: flex; align-items: center; }
+
+  .app { display: flex; flex: 1; overflow: hidden; height: calc(100vh - 61px); }
+
+  /* CAMERA */
+  .camera-zone { flex: 1; position: relative; background: #080a09; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); opacity: 0; transition: opacity 0.5s; }
+  #video.visible { opacity: 1; }
+  #canvas { position: absolute; inset: 0; width: 100%; height: 100%; transform: scaleX(-1); }
+
+  .camera-placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: var(--muted); font-size: 13px; }
+  .camera-placeholder svg { opacity: 0.3; }
+  .start-btn { background: var(--accent); color: #0d0f0e; border: none; border-radius: var(--radius); padding: 12px 28px; font-family: var(--mono); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; margin-top: 8px; }
+  .start-btn:hover { transform: scale(1.03); }
+
+  /* OVERLAY */
+  .feedback-overlay { position: absolute; top: 14px; left: 14px; right: 14px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
+  .detection-badge { background: rgba(13,15,14,0.85); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; font-size: 12px; color: var(--muted); display: none; }
+  .detection-badge.visible { display: block; }
+  .detection-badge.detected { border-color: var(--accent); color: var(--accent); }
+  .detection-badge.warn { border-color: var(--accent3); color: var(--accent3); }
+  .ghost-toggle { background: rgba(13,15,14,0.85); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; font-size: 11px; color: var(--muted); cursor: pointer; pointer-events: all; transition: all 0.15s; font-family: var(--mono); }
+  .ghost-toggle.on { border-color: var(--accent2); color: var(--accent2); }
+
+  /* STEP PROMPT — big center cue */
+  .step-prompt {
+    display: none;
+  }
+  .step-prompt.show { display: none; }
+  .step-prompt.good { display: none; }
+  .step-prompt.warn { display: none; }
+
+  /* BODY PARTS WARNING — bottom center banner */
+  .parts-warning {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(6px);
+    width: calc(100% - 48px); max-width: 1800px;
+    background: rgba(201,167,123,0.35); backdrop-filter: blur(8px);
+    border: 1px solid rgba(201,167,123,0.75); border-radius: 12px;
+    padding: 16px 30px; font-size: 35px; font-weight: 700; color: #433528;
+    pointer-events: none; opacity: 0; transition: opacity 0.18s, transform 0.18s;
+    white-space: normal; z-index: 11; text-align: center;
+    line-height: 1.2; max-height: 110px; overflow-wrap: anywhere; overflow: visible;
+  }
+  .parts-warning.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* HOLD RING */
+  .hold-ring-container { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: none; }
+  .hold-ring-container.visible { display: block; }
+  .hold-ring-svg { transform: rotate(-90deg); }
+  .hold-ring-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 500; color: var(--accent); font-family: var(--mono); }
+
+  /* LOADING */
+  .loading-spinner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(8,10,9,0.8); font-size: 13px; color: var(--muted); z-index: 10; }
+  .spinner { width: 36px; height: 36px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* STATS */
+  .stats-panel { width: 220px; min-width: 220px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; padding: 14px 13px; gap: 12px; overflow-y: auto; }
+  .stat-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px; display: flex; flex-direction: column; gap: 4px; }
+  .stat-label { font-size: 20px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); }
+  .stat-value { font-size: 38px; font-family: var(--serif); font-weight: 600; color: var(--accent); line-height: 1; }
+  .stat-sub { font-size: 15px; color: var(--muted); }
+  .stat-value.pop { animation: popAnim 0.3s ease-out; }
+  @keyframes popAnim { 0%{transform:scale(1.4)} 100%{transform:scale(1)} }
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; width: 0%; transition: width 0.3s; }
+
+  /* ROM BAR */
+  .rom-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px; display: flex; flex-direction: column; gap: 10px; }
+  .rom-bar-wrap { display: flex; gap: 10px; align-items: stretch; height: 160px; }
+  .rom-bar-track { width: 26px; background: var(--border); border-radius: 13px; position: relative; overflow: visible; flex-shrink: 0; }
+  .rom-bar-fill { position: absolute; bottom: 0; left: 0; right: 0; background: var(--accent3); border-radius: 13px; height: 0%; transition: height 0.1s, background 0.2s; }
+  .rom-bar-fill.partial { background: var(--accent2); }
+  .rom-bar-fill.deep { background: var(--accent); }
+  .rom-target-line { position: absolute; left: -6px; right: -6px; height: 2px; background: rgba(201,167,123,0.55); pointer-events: none; }
+  .rom-target-label { position: absolute; left: 32px; font-size: 13px; color: rgba(201,167,123,0.6); transform: translateY(50%); white-space: nowrap; }
+  .rom-labels { display: flex; flex-direction: column; justify-content: space-between; font-size: 13px; color: var(--muted); padding: 0; flex: 1; }
+  .rom-pct { font-size: 20px; font-family: var(--serif); font-weight: 600; color: var(--accent); line-height: 1; }
+  .rom-pct-label { font-size: 15px; color: var(--muted); }
+
+  /* Angles */
+  .angle-row { display: flex; justify-content: space-between; font-size: 15px; color: var(--muted); padding: 3px 0; border-bottom: 1px solid var(--border); }
+  .angle-row:last-child { border-bottom: none; }
+  .angle-val { color: var(--text); font-weight: 500; }
+  .angle-val.active { color: var(--accent); }
+  .angle-val.missing { color: var(--accent3); }
+
+  /* Log */
+  .log-entries { display: flex; flex-direction: column; gap: 3px; max-height: 100px; overflow-y: auto; }
+  .log-entry { font-size: 11px; color: var(--muted); padding: 2px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+  .log-entry .log-time { color: var(--accent); }
+
+  .reset-btn { background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 8px; color: var(--muted); font-family: var(--mono); font-size: 12px; cursor: pointer; transition: all 0.15s; width: 100%; }
+  .reset-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+</style>
+  <script type="module" crossorigin src="/assets/main-BhNENjbg.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
 </head>
 <body>
 
 <header>
-  <a href="index.html#home" class="logo" style="text-decoration:none">ABC</a>
-  <div class="header-status" style="display:flex;align-items:center;gap:12px;font-size:14px;color:var(--muted)">
+  <div class="logo">
+    <a href="index.html#home" class="logo" style="text-decoration:none">
+    <img src="/assets/logo-DDzNlLgV.png" style="height:28px;width:auto;" alt="logo" />
+    ABC
+  </a></div>
+
+  <div class="header-status">
     <span class="status-dot" id="statusDot"></span>
     <span id="statusText">camera off</span>
-    <span id="profileBadge" style="display:none;font-size:12px;"></span>
-    <button class="ghost-toggle-btn active" id="ghostToggleButton" type="button">Silhouette: On</button>
   </div>
 </header>
 
-<div class="app" style="display:flex;flex:1;overflow:hidden;height:calc(100vh - 61px)">
-  <div id="sidebarContainer"></div>
+<div class="app">
+
+    <div id="sidebarContainer"></div>
   <script>
     async function loadSidebar() {
       try {
-        const response = await fetch("sidebar.html");
+        const response = await fetch("/sidebar.html");
         const html = await response.text();
         const template = document.createElement("template");
         template.innerHTML = html;
@@ -33,7 +157,9 @@
         if (style) document.head.appendChild(style);
         const aside = template.content.querySelector("aside");
         if (aside) document.getElementById("sidebarContainer").appendChild(aside);
-      } catch (e) {}
+      } catch (error) {
+        console.error("Failed to load sidebar:", error);
+      }
     }
     loadSidebar();
   </script>
@@ -41,14 +167,13 @@
   <div class="camera-zone">
     <video id="video" playsinline autoplay muted></video>
     <canvas id="canvas"></canvas>
-    <canvas id="ghostCanvas"></canvas>
 
     <div class="camera-placeholder" id="placeholder">
       <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-        <rect x="2" y="10" width="44" height="32" rx="6" stroke="#7a5f4f" stroke-width="2"/>
-        <circle cx="24" cy="26" r="9" stroke="#7a5f4f" stroke-width="2"/>
-        <circle cx="24" cy="26" r="4" fill="#7a5f4f"/>
-        <path d="M16 10V8a3 3 0 013-3h10a3 3 0 013 3v2" stroke="#7a5f4f" stroke-width="2"/>
+        <rect x="2" y="10" width="44" height="32" rx="6" stroke="#7a8c7e" stroke-width="2"/>
+        <circle cx="24" cy="26" r="9" stroke="#7a8c7e" stroke-width="2"/>
+        <circle cx="24" cy="26" r="4" fill="#7a8c7e"/>
+        <path d="M16 10V8a3 3 0 013-3h10a3 3 0 013 3v2" stroke="#7a8c7e" stroke-width="2"/>
       </svg>
       <div id="placeholderMsg">Allow camera access to begin</div>
       <button class="start-btn" onclick="startCamera()">Start Camera</button>
@@ -59,25 +184,17 @@
       <span id="loadingMsg">Loading MediaPipe…</span>
     </div>
 
-    <div class="feedback-overlay" style="position:absolute;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10;">
+    <div class="feedback-overlay">
       <div class="detection-badge" id="detectionBadge">No body detected</div>
     </div>
 
-    <div class="pose-match-bar" id="poseMatchBar">
-      <span id="poseMatchLabel">Match pose</span>
-      <div class="pose-match-track"><div class="pose-match-fill" id="poseMatchFill"></div></div>
-      <span id="poseMatchPct">0%</span>
-    </div>
-
-    <div class="phase-flash" id="phaseFlash"></div>
-    <div class="ghost-label" id="ghostLabel">↓ Match the pose</div>
     <div class="step-prompt" id="stepPrompt"></div>
     <div class="parts-warning" id="partsWarning"></div>
 
     <div class="hold-ring-container" id="holdRingContainer">
-      <svg class="hold-ring-svg" width="120" height="120" viewBox="0 0 80 80">
-        <circle cx="40" cy="40" r="34" fill="none" stroke="#3d2a1e" stroke-width="8"/>
-        <circle id="holdArc" cx="40" cy="40" r="34" fill="none" stroke="#6ee7a0" stroke-width="8"
+      <svg class="hold-ring-svg" width="80" height="80" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="34" fill="none" stroke="#2a312d" stroke-width="6"/>
+        <circle id="holdArc" cx="40" cy="40" r="34" fill="none" stroke="#5ef5a0" stroke-width="6"
           stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"/>
       </svg>
       <div class="hold-ring-text" id="holdTimer">0s</div>
@@ -92,35 +209,41 @@
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     </div>
 
+    <!-- ROM BAR -->
     <div class="rom-card">
       <div class="stat-label">Range of Motion</div>
-      <div class="rom-bar-wrap" style="display:flex;gap:10px;align-items:stretch;height:160px;">
-        <div class="rom-bar-track" style="width:26px;overflow:visible">
+      <div class="rom-bar-wrap">
+        <div class="rom-bar-track" style="overflow:visible">
           <div class="rom-bar-fill" id="romFill"></div>
           <div class="rom-target-line" id="romTargetLine" style="bottom:75%">
             <span class="rom-target-label">target</span>
           </div>
         </div>
-        <div class="rom-labels"><span>Full</span><span></span><span></span><span></span><span>Start</span></div>
+        <div class="rom-labels">
+          <span>Full</span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span>Start</span>
+        </div>
       </div>
-      <div class="rom-pct" id="romPct"></div>
-      <div class="rom-pct-label" id="romPctLabel"></div>
+      <div class="rom-pct" id="romPct">—</div>
     </div>
 
     <div class="stat-card">
       <div class="stat-label">Joint Angles</div>
-      <div class="angle-row"><span>L Elbow</span>   <span class="angle-val" id="aLElbow">—°</span></div>
-      <div class="angle-row"><span>R Elbow</span>   <span class="angle-val" id="aRElbow">—°</span></div>
+      <div class="angle-row"><span>L Elbow</span><span class="angle-val" id="aLElbow">—°</span></div>
+      <div class="angle-row"><span>R Elbow</span><span class="angle-val" id="aRElbow">—°</span></div>
       <div class="angle-row"><span>L Shoulder</span><span class="angle-val" id="aLShoulder">—°</span></div>
       <div class="angle-row"><span>R Shoulder</span><span class="angle-val" id="aRShoulder">—°</span></div>
-      <div class="angle-row"><span>L Knee</span>    <span class="angle-val" id="aLKnee">—°</span></div>
-      <div class="angle-row"><span>R Knee</span>    <span class="angle-val" id="aRKnee">—°</span></div>
+      <div class="angle-row"><span>L Knee</span><span class="angle-val" id="aLKnee">—°</span></div>
+      <div class="angle-row"><span>R Knee</span><span class="angle-val" id="aRKnee">—°</span></div>
     </div>
 
     <div class="stat-card">
       <div class="stat-label">Session Log</div>
       <div class="log-entries" id="logEntries">
-        <div class="log-entry" style="color:var(--muted);font-size:13px">No reps yet</div>
+        <div class="log-entry" style="color:var(--muted);font-size:11px">No reps yet</div>
       </div>
     </div>
 
