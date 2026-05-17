@@ -24,7 +24,7 @@ const CSS = `
     grid-template-columns: 1fr minmax(320px, 360px);
     grid-template-rows: auto 1fr;
     height: 100vh;
-    background: var(--bg);
+    background: var(--surface);
     overflow: hidden;
   }
   .cal-screen.complete {
@@ -36,6 +36,8 @@ const CSS = `
     flex-direction: column;
     gap: 8px;
     grid-column: 1 / -1;
+    background: var(--surface);
+    // todo: add box shadow or border to separate from video & sidebar
   }
   .cal-progress-row {
     display: flex;
@@ -59,22 +61,16 @@ const CSS = `
     border-radius: 99px;
     overflow: hidden;
   }
-  .cal-home-link {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 54px;
-    padding: 10px 14px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.08);
-    color: var(--text);
-    font-size: 0.9rem;
-    font-weight: 700;
+ .cal-home-link {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 21px;
+    letter-spacing: -0.5px;
+    color: var(--accent);
     text-decoration: none;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
   }
   .cal-home-link:hover {
-    background: rgba(255,255,255,0.12);
+    opacity: 0.8;
   }
   .progress-track {
     height: 6px;
@@ -190,7 +186,7 @@ const CSS = `
     color: var(--accent);
   }
   .cal-instruction {
-    font-size: clamp(3rem, 3vw, 5rem);
+    font-size: clamp(1rem, 1.8vw, 1.6rem);
     line-height: 1.5;
     color: var(--text);
   }
@@ -217,18 +213,20 @@ const CSS = `
   }
   .btn-ghost {
     background: transparent;
-    color: var(--text-muted);
-    border: 1px solid var(--text-muted);
+    color: var(--muted);
+    border: 1.5px solid var(--muted);
     padding: 10px 20px;
     cursor: pointer;
     border-radius: var(--radius);
     font-family: var(--font);
     font-size: 1rem;
-    transition: opacity 0.15s, transform 0.1s;
+    transition: opacity 0.15s, transform 0.1s, border-color 0.15s, color 0.15s;
   }
   .btn-ghost:hover {
-    opacity: 0.88;
-  }
+  opacity: 0.88;
+  border-color: var(--accent);
+  color: var(--accent);
+}
   .btn-ghost:active {
     transform: scale(0.97);
   }
@@ -490,7 +488,7 @@ export function mountCalibrationScreen(container) {
         </div>
         <div class="cal-card">
           <div class="cal-actions">
-            <a href="exercise-tracker_4.html">
+            <a href="muscle.html">
               <button class="btn-primary">Start your first workout →</button>
             </a>
             <button class="btn-ghost" onclick="location.hash='#calibrate';location.reload()">

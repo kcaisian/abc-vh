@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ABC — Choose Your Exercise</title>
+<link rel="stylesheet" href="src/styles/main.css">
+<style>
+  /* ── muscle.html-specific layout styles only ── */
+  body { overflow: hidden; }
+
+  /* ── SCREEN 1: BODY PART SELECTOR ── */
+  #screen-body { background: var(--bg); }
+  .body-layout { display:flex; flex:1; overflow:hidden; }
+
+  .body-diagram-side {
+    flex: 0 0 420px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:32px; border-right:1px solid var(--border); position:relative;
+  }
+  .body-diagram-side h2 { font-family:var(--serif); font-size:15px; font-weight:300; font-style:italic; color:var(--muted); margin-bottom:24px; text-align:center; }
+
+  #body-svg { width:220px; height:auto; cursor:default; }
+  #body-svg .region { fill:rgba(201,167,123,0.06); stroke:rgba(201,167,123,0.25); stroke-width:1.5; cursor:pointer; transition:fill .2s, stroke .2s; }
+  #body-svg .region:hover  { fill:rgba(201,167,123,0.18); stroke:rgba(201,167,123,0.7); }
+  #body-svg .region.selected { fill:rgba(201,167,123,0.28); stroke:var(--accent); stroke-width:2; }
+
+  .body-hint { margin-top:20px; font-size:11px; color:var(--muted); text-align:center; line-height:1.6; }
+
+  .parts-grid-side { flex:1; padding:32px 28px; overflow-y:auto; display:flex; flex-direction:column; gap:20px; }
+  .parts-grid-side h2 { font-family:var(--serif); font-size:24px; font-weight:600; color:var(--text); }
+  .parts-grid-side p  { font-size:12px; color:var(--muted); margin-top:4px; }
+  .parts-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px; margin-top:4px; }
+
+  .part-card {
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px; cursor:pointer; transition:all .18s; display:flex; flex-direction:column; gap:6px; text-align:left;
+  }
+  .part-card:hover { background:var(--surface2); border-color:var(--muted); transform:translateY(-1px); }
+  .part-card.selected { border-color:var(--accent); background:rgba(201,167,123,0.08); }
+  .part-card .icon  { font-size:22px; line-height:1; }
+  .part-card .pname { font-size:13px; font-weight:500; }
+  .part-card .pdesc { font-size:10px; color:var(--muted); line-height:1.4; }
+  .part-card .ptag  { font-size:9px; padding:2px 6px; border-radius:4px; background:var(--border); color:var(--muted); display:inline-block; margin-top:2px; }
+  .part-card.selected .ptag { background:rgba(201,167,123,0.2); color:var(--accent); }
+
+  .next-btn {
+    background:var(--accent); color:#1a0e08; border:none; border-radius:var(--radius);
+    padding:13px 36px; font-family:var(--mono); font-size:14px; font-weight:500;
+    cursor:pointer; transition:all .18s; align-self:flex-start; opacity:.4; pointer-events:none;
+  }
+  .next-btn.ready { opacity:1; pointer-events:all; }
+  .next-btn.ready:hover { transform:scale(1.03); }
+
+  /* ── SCREEN 2: EXERCISE PICKER ── */
+  #screen-exercises { background:var(--bg); }
+  .ex-layout { display:flex; flex:1; overflow:hidden; }
+
+  .ex-list-side { width:340px; min-width:340px; border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+  .ex-list-header { padding:24px 20px 14px; border-bottom:1px solid var(--border); }
+  .ex-list-header h2 { font-family:var(--serif); font-size:20px; font-weight:600; }
+  .ex-list-header p  { font-size:11px; color:var(--muted); margin-top:3px; }
+  .ex-list-scroll { flex:1; overflow-y:auto; padding:12px; }
+
+  .ex-item {
+    display:flex; align-items:center; gap:12px; padding:11px 13px;
+    border:1px solid var(--border); border-radius:10px; cursor:pointer;
+    transition:all .15s; margin-bottom:7px; background:var(--surface);
+  }
+  .ex-item:hover { background:var(--surface2); border-color:var(--muted); }
+  .ex-item.selected { border-color:var(--accent); background:rgba(201,167,123,0.06); }
+  .ex-item .ex-icon { width:34px; height:34px; border-radius:8px; background:var(--border); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .ex-item.selected .ex-icon { background:rgba(201,167,123,0.18); }
+  .ex-item .ex-info { flex:1; }
+  .ex-item .ex-name  { font-size:13px; font-weight:500; }
+  .ex-item .ex-meta  { font-size:10px; color:var(--muted); margin-top:1px; }
+  .ex-item .ex-badge { font-size:9px; padding:2px 6px; border-radius:4px; background:var(--border); color:var(--muted); }
+  .ex-item.selected .ex-badge { background:rgba(201,167,123,0.18); color:var(--accent); }
+  .ex-item .ex-check { width:18px; height:18px; border-radius:50%; border:1.5px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:10px; }
+  .ex-item.selected .ex-check { background:var(--accent); border-color:var(--accent); color:#1a0e08; }
+
+  .ex-detail-side { flex:1; display:flex; flex-direction:column; padding:28px; overflow-y:auto; gap:20px; }
+  .ex-detail-placeholder { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:var(--muted); font-size:13px; }
+  .ex-detail-placeholder svg { opacity:.25; }
+  .ex-detail-card { display:none; flex-direction:column; gap:16px; }
+  .ex-detail-card.show { display:flex; }
+  .ex-detail-card h3 { font-family:var(--serif); font-size:22px; font-weight:600; }
+  .ex-detail-desc { font-size:13px; color:var(--muted); line-height:1.7; }
+
+  .how-to-list { display:flex; flex-direction:column; gap:8px; }
+  .how-to-step { display:flex; gap:10px; align-items:flex-start; }
+  .step-num { width:22px; height:22px; border-radius:50%; background:rgba(201,167,123,0.12); border:1px solid rgba(201,167,123,0.3); color:var(--accent); font-size:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+  .step-text { font-size:12px; color:var(--muted); line-height:1.6; }
+
+  .ex-meta-row { display:flex; gap:10px; flex-wrap:wrap; }
+  .meta-chip { padding:5px 12px; border-radius:20px; border:1px solid var(--border); font-size:11px; color:var(--muted); }
+  .meta-chip span { color:var(--text); }
+
+  .start-ex-btn {
+    background:var(--accent); color:#1a0e08; border:none; border-radius:var(--radius);
+    padding:13px 28px; font-family:var(--mono); font-size:14px; font-weight:500;
+    cursor:pointer; transition:all .18s; align-self:flex-start;
+  }
+  .start-ex-btn:hover { transform:scale(1.03); }
+
+  /* ── SCREEN 3: TRACKER ── */
+  #screen-tracker { background:var(--bg); }
+  .tracker-layout { display:flex; flex:1; overflow:hidden; }
+  .status-row { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- ══════════ SCREEN 1: BODY PART ══════════ -->
+<div class="screen active" id="screen-body">
+  <div class="topbar">
+    <a href="#home" class="logo" style="text-decoration:none">ABC</a>
+    <div style="font-size:12px;color:var(--muted)">Step 1 of 3 — Choose a body area</div>
+  </div>
+  <div class="body-layout">
+
+    <div class="body-diagram-side">
+      <h2>Tap a region to highlight it</h2>
+      <svg id="body-svg" viewBox="0 0 200 460" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g opacity=".18" fill="#c9a77b">
+          <ellipse cx="100" cy="38" rx="26" ry="30"/>
+          <rect x="91" y="64" width="18" height="18" rx="4"/>
+          <rect x="60" y="80" width="80" height="100" rx="10"/>
+          <rect x="28" y="82" width="32" height="16" rx="8" transform="rotate(15 28 82)"/>
+          <rect x="16" y="120" width="30" height="14" rx="7" transform="rotate(5 16 120)"/>
+          <ellipse cx="17" cy="150" rx="11" ry="14"/>
+          <rect x="140" y="82" width="32" height="16" rx="8" transform="rotate(-15 172 82)"/>
+          <rect x="154" y="120" width="30" height="14" rx="7" transform="rotate(-5 184 120)"/>
+          <ellipse cx="183" cy="150" rx="11" ry="14"/>
+          <rect x="58" y="176" width="84" height="40" rx="8"/>
+          <rect x="58" y="212" width="36" height="90" rx="12"/>
+          <rect x="106" y="212" width="36" height="90" rx="12"/>
+          <rect x="60" y="298" width="32" height="80" rx="10"/>
+          <rect x="108" y="298" width="32" height="80" rx="10"/>
+          <ellipse cx="74" cy="390" rx="18" ry="10"/>
+          <ellipse cx="126" cy="390" rx="18" ry="10"/>
+        </g>
+        <!-- CLICKABLE REGIONS -->
+        <ellipse class="region" data-part="neck"     cx="100" cy="38"  rx="28" ry="32"/>
+        <rect    class="region" data-part="neck"     x="88"  y="62"  width="24" height="22" rx="5"/>
+        <ellipse class="region" data-part="shoulder" cx="52"  cy="94"  rx="22" ry="18"/>
+        <ellipse class="region" data-part="shoulder" cx="148" cy="94"  rx="22" ry="18"/>
+        <ellipse class="region" data-part="elbow"    cx="36"  cy="128" rx="16" ry="14"/>
+        <ellipse class="region" data-part="elbow"    cx="164" cy="128" rx="16" ry="14"/>
+        <ellipse class="region" data-part="wrist"    cx="22"  cy="152" rx="15" ry="18"/>
+        <ellipse class="region" data-part="wrist"    cx="178" cy="152" rx="15" ry="18"/>
+        <rect    class="region" data-part="core"     x="62"  y="82"  width="76" height="88" rx="10"/>
+        <rect    class="region" data-part="hips"     x="60"  y="172" width="80" height="44" rx="8"/>
+        <ellipse class="region" data-part="knee"     cx="76"  cy="305" rx="20" ry="18"/>
+        <ellipse class="region" data-part="knee"     cx="124" cy="305" rx="20" ry="18"/>
+        <rect    class="region" data-part="legs"     x="58"  y="212" width="38" height="82" rx="12"/>
+        <rect    class="region" data-part="legs"     x="104" y="212" width="38" height="82" rx="12"/>
+        <ellipse class="region" data-part="ankle"    cx="74"  cy="374" rx="17" ry="15"/>
+        <ellipse class="region" data-part="ankle"    cx="126" cy="374" rx="17" ry="15"/>
+        <ellipse class="region" data-part="foot"     cx="68"  cy="395" rx="22" ry="11"/>
+        <ellipse class="region" data-part="foot"     cx="132" cy="395" rx="22" ry="11"/>
+      </svg>
+      <div class="body-hint">Click any region on the diagram<br>or choose from the grid →</div>
+    </div>
+
+    <div class="parts-grid-side">
+      <div>
+        <h2>What would you like to work on today?</h2>
+        <p>Select a body area to see recommended rehabilitation exercises.</p>
+      </div>
+      <div class="parts-grid" id="partsGrid"></div>
+      <button class="next-btn" id="nextBtn" onclick="goToExercises()">Choose Exercises →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SCREEN 2: EXERCISE PICKER ══════════ -->
+<div class="screen" id="screen-exercises">
+  <div class="topbar">
+    <a href="#home" class="logo" style="text-decoration:none">ABC</a>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="back-btn" onclick="goBack(1)">← Back</button>
+      <div style="font-size:12px;color:var(--muted)">Step 2 of 3 — Choose an exercise</div>
+    </div>
+  </div>
+  <div class="ex-layout">
+    <div class="ex-list-side">
+      <div class="ex-list-header">
+        <h2 id="exListTitle">Exercises</h2>
+        <p id="exListSub">Select one to see details</p>
+      </div>
+      <div class="ex-list-scroll" id="exListScroll"></div>
+    </div>
+    <div class="ex-detail-side">
+      <div class="ex-detail-placeholder" id="exDetailPlaceholder">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <path d="M24 6C13.5 6 5 14.5 5 25s8.5 19 19 19 19-8.5 19-19S34.5 6 24 6z" stroke="#7a5f4f" stroke-width="1.5"/>
+          <path d="M24 16v10l6 4" stroke="#7a5f4f" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span>Select an exercise to see details</span>
+      </div>
+      <div class="ex-detail-card" id="exDetailCard">
+        <h3 id="exDetailName"></h3>
+        <div class="ex-meta-row" id="exDetailMeta"></div>
+        <p class="ex-detail-desc" id="exDetailDesc"></p>
+        <div class="stat-lbl" style="margin-top:4px">HOW TO DO IT</div>
+        <div class="how-to-list" id="exDetailSteps"></div>
+        <a href="main.html" style="pointer-events:all"><button class="start-ex-btn">Start Exercise →</button></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="src/workout/muscle.js"></script>
+</body>
+</html>
