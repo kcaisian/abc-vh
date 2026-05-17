@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ABC — Adaptive Exercise Tracker</title>
+<link rel="icon" type="image/png" href="/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
 <style>
@@ -25,7 +26,7 @@
   body { background: var(--bg); color: var(--text); font-family: var(--mono); min-height: 100vh; display: flex; flex-direction: column; }
 
   header { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px; border-bottom: 1px solid var(--border); background: var(--surface); }
-  .logo { font-family: var(--mono); font-weight: 600; font-size: 22px; letter-spacing: -0.5px; color: var(--accent); }
+  .logo { display:flex; align-items:center; gap:8px; font-family:var(--mono); font-weight:600; font-size:21px; letter-spacing:-0.5px; color:var(--accent); text-decoration:none; }
   .logo span { color: var(--text); font-style: italic; font-weight: 300; }
   .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; margin-right: 8px; transition: background 0.3s; }
   .status-dot.live { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
@@ -129,11 +130,10 @@
 <body>
 
 <header>
-  <div class="logo">
-    <a href="index.html#home" class="logo" style="text-decoration:none">
-    <img src="/src/assets/logo.png" style="height:28px;width:auto;" alt="logo" />
+  <a href="index.html#home" class="logo">
+    <img src="/logo.png" style="height:28px;width:auto;" alt="logo" />
     ABC
-  </a></div>
+  </a>
 
   <div class="header-status">
     <span class="status-dot" id="statusDot"></span>

@@ -22,15 +22,15 @@ function render() {
       <div style="
         display:flex;flex-direction:column;align-items:center;justify-content:center;
         height:100vh;gap:24px;padding:24px;text-align:center;
-        background-image:url('/src/assets/logo_bg.png');
+        background-image:url('/logo_bg.png');
         background-size:auto 100%;
         background-position:center;
         background-repeat:no-repeat;
         background-color:#2d1f16;
       ">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <img src="/src/assets/logo.png" style="height:48px;width:auto;" alt="logo" />
-          <h1 style="font-size:2.5rem;font-weight:700;color:var(--accent)">ABC</h1>
+        <div class="logo" style="font-size:2.5rem;pointer-events:none;">
+          <img src="/logo.png" style="height:48px;width:auto;" alt="logo" />
+          ABC
         </div>
         <p style="color:var(--text-muted);max-width:400px;line-height:1.6">
           Fitness that meets you where you are.<br>

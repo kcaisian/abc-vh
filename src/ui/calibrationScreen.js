@@ -62,7 +62,10 @@ const CSS = `
     overflow: hidden;
   }
  .cal-home-link {
-    font-family: var(--serif);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
     font-weight: 600;
     font-size: 21px;
     letter-spacing: -0.5px;
@@ -283,8 +286,8 @@ export function mountCalibrationScreen(container) {
     <div class="cal-screen">
       <div class="cal-header">
         <div class="cal-progress-row">
-          <a href="#home" class="cal-home-link" title="Back to home" style="display:flex;align-items:center;gap:8px;">
-            <img src="/src/assets/logo.png" style="height:28px;width:auto;" alt="logo" />
+          <a href="#home" class="cal-home-link" title="Back to home">
+            <img src="/logo.png" style="height:28px;width:auto;" alt="logo" />
             ABC
           </a>
           <h2 id="cal-step-counter">Setting up…</h2>

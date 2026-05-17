@@ -87,11 +87,15 @@ button:active { transform: scale(0.97); }
   z-index: 10;
 }
 .logo {
-  font-family: var(--serif);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
   font-weight: 600;
   font-size: 21px;
   letter-spacing: -0.5px;
   color: var(--accent);
+  text-decoration: none;
 }
 .logo em, .logo span { color: var(--text); font-style: italic; font-weight: 300; }
 
