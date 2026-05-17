@@ -14,12 +14,12 @@
   .body-layout { display:flex; flex:1; overflow:hidden; }
 
   .body-diagram-side {
-    flex: 0 0 420px; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    padding:32px; border-right:1px solid var(--border); position:relative;
+    flex: 0 0 480px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:36px; border-right:1px solid var(--border); position:relative;
   }
-  .body-diagram-side h2 { font-family:var(--serif); font-size:15px; font-weight:300; font-style:italic; color:var(--muted); margin-bottom:24px; text-align:center; }
+  .body-diagram-side h2 { font-family:var(--serif); font-size:17px; font-weight:300; font-style:italic; color:var(--muted); margin-bottom:28px; text-align:center; }
 
-  #body-svg { width:220px; height:auto; cursor:default; }
+  #body-svg { width:280px; height:auto; cursor:default; }
   #body-svg .region { fill:rgba(201,167,123,0.06); stroke:rgba(201,167,123,0.25); stroke-width:1.5; cursor:pointer; transition:fill .2s, stroke .2s; }
   #body-svg .region:hover  { fill:rgba(201,167,123,0.18); stroke:rgba(201,167,123,0.7); }
   #body-svg .region.selected { fill:rgba(201,167,123,0.28); stroke:var(--accent); stroke-width:2; }
@@ -29,26 +29,26 @@
   .parts-grid-side { flex:1; padding:32px 28px; overflow-y:auto; display:flex; flex-direction:column; gap:20px; }
   .parts-grid-side h2 { font-family:var(--serif); font-size:24px; font-weight:600; color:var(--text); }
   .parts-grid-side p  { font-size:12px; color:var(--muted); margin-top:4px; }
-  .parts-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px; margin-top:4px; }
+  .parts-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; margin-top:8px; }
 
   .part-card {
     background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-    padding:16px; cursor:pointer; transition:all .18s; display:flex; flex-direction:column; gap:6px; text-align:left;
+    padding:22px; cursor:pointer; transition:all .18s; display:flex; flex-direction:column; gap:10px; text-align:left;
   }
   .part-card:hover { background:var(--surface2); border-color:var(--muted); transform:translateY(-1px); }
   .part-card.selected { border-color:var(--accent); background:rgba(201,167,123,0.08); }
-  .part-card .icon  { font-size:22px; line-height:1; }
-  .part-card .pname { font-size:13px; font-weight:500; }
-  .part-card .pdesc { font-size:10px; color:var(--muted); line-height:1.4; }
-  .part-card .ptag  { font-size:9px; padding:2px 6px; border-radius:4px; background:var(--border); color:var(--muted); display:inline-block; margin-top:2px; }
+  /* icons removed: don't reserve space */
+  .part-card .icon  { display:none; }
+  .part-card .pname { font-size:16px; font-weight:600; color:var(--text); margin-top:2px }
+  .part-card .pdesc { font-size:13px; color:var(--muted); line-height:1.4; }
+  .part-card .ptag  { font-size:11px; padding:4px 8px; border-radius:6px; background:var(--border); color:var(--muted); display:inline-block; margin-top:4px; }
   .part-card.selected .ptag { background:rgba(201,167,123,0.2); color:var(--accent); }
 
   .next-btn {
     background:var(--accent); color:#1a0e08; border:none; border-radius:var(--radius);
     padding:13px 36px; font-family:var(--mono); font-size:14px; font-weight:500;
-    cursor:pointer; transition:all .18s; align-self:flex-start; opacity:.4; pointer-events:none;
+    cursor:pointer; transition:all .18s; align-self:flex-start; opacity:1; pointer-events:all;
   }
-  .next-btn.ready { opacity:1; pointer-events:all; }
   .next-btn.ready:hover { transform:scale(1.03); }
 
   /* ── SCREEN 2: EXERCISE PICKER ── */
@@ -62,14 +62,15 @@
   .ex-list-scroll { flex:1; overflow-y:auto; padding:12px; }
 
   .ex-item {
-    display:flex; align-items:center; gap:12px; padding:11px 13px;
+    display:flex; align-items:center; gap:14px; padding:14px 16px;
     border:1px solid var(--border); border-radius:10px; cursor:pointer;
     transition:all .15s; margin-bottom:7px; background:var(--surface);
   }
   .ex-item:hover { background:var(--surface2); border-color:var(--muted); }
   .ex-item.selected { border-color:var(--accent); background:rgba(201,167,123,0.06); }
-  .ex-item .ex-icon { width:34px; height:34px; border-radius:8px; background:var(--border); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
-  .ex-item.selected .ex-icon { background:rgba(201,167,123,0.18); }
+  /* exercise icons removed: hide icon container */
+  .ex-item .ex-icon { display:none; }
+  .ex-item.selected .ex-icon { display:none; }
   .ex-item .ex-info { flex:1; }
   .ex-item .ex-name  { font-size:13px; font-weight:500; }
   .ex-item .ex-meta  { font-size:10px; color:var(--muted); margin-top:1px; }
