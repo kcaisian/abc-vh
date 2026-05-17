@@ -89,9 +89,9 @@
   /* STATS */
   .stats-panel { width: 220px; min-width: 220px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; padding: 14px 13px; gap: 12px; overflow-y: auto; }
   .stat-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px; display: flex; flex-direction: column; gap: 4px; }
-  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); }
+  .stat-label { font-size: 20px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); }
   .stat-value { font-size: 38px; font-family: var(--serif); font-weight: 600; color: var(--accent); line-height: 1; }
-  .stat-sub { font-size: 11px; color: var(--muted); }
+  .stat-sub { font-size: 15px; color: var(--muted); }
   .stat-value.pop { animation: popAnim 0.3s ease-out; }
   @keyframes popAnim { 0%{transform:scale(1.4)} 100%{transform:scale(1)} }
   .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 6px; }
@@ -105,13 +105,13 @@
   .rom-bar-fill.partial { background: var(--accent2); }
   .rom-bar-fill.deep { background: var(--accent); }
   .rom-target-line { position: absolute; left: -6px; right: -6px; height: 2px; background: rgba(201,167,123,0.55); pointer-events: none; }
-  .rom-target-label { position: absolute; left: 32px; font-size: 9px; color: rgba(201,167,123,0.6); transform: translateY(50%); white-space: nowrap; }
-  .rom-labels { display: flex; flex-direction: column; justify-content: space-between; font-size: 10px; color: var(--muted); padding: 0; flex: 1; }
+  .rom-target-label { position: absolute; left: 32px; font-size: 13px; color: rgba(201,167,123,0.6); transform: translateY(50%); white-space: nowrap; }
+  .rom-labels { display: flex; flex-direction: column; justify-content: space-between; font-size: 13px; color: var(--muted); padding: 0; flex: 1; }
   .rom-pct { font-size: 20px; font-family: var(--serif); font-weight: 600; color: var(--accent); line-height: 1; }
-  .rom-pct-label { font-size: 10px; color: var(--muted); }
+  .rom-pct-label { font-size: 15px; color: var(--muted); }
 
   /* Angles */
-  .angle-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); padding: 3px 0; border-bottom: 1px solid var(--border); }
+  .angle-row { display: flex; justify-content: space-between; font-size: 15px; color: var(--muted); padding: 3px 0; border-bottom: 1px solid var(--border); }
   .angle-row:last-child { border-bottom: none; }
   .angle-val { color: var(--text); font-weight: 500; }
   .angle-val.active { color: var(--accent); }
@@ -221,7 +221,6 @@
         </div>
       </div>
       <div class="rom-pct" id="romPct">—</div>
-      <div class="rom-pct-label" id="romPctLabel">depth</div>
     </div>
 
     <div class="stat-card">
@@ -313,18 +312,7 @@ const LM_GROUPS = {
 // Each exercise declares which LM_GROUPS must ALL be visible to count a rep/hold.
 // Also carries a human-readable hint of WHERE the person should position themselves.
 const EXERCISES = {
-  pushup:{
-    name:"Push-Up", type:"rep", target:10,
-    joints:["LElbow","RElbow"],
-    romTop:160, romBottom:70, romTargetPct:78,
-    poses:GP.pushup,
-    // need shoulders, elbows, wrists visible (floor/plank view)
-    requiredGroups:["LShoulderElbow","RShoulderElbow","LElbowWrist","RElbowWrist","LHip","RHip"],
-    frameHint:"Show full upper body — shoulders, elbows, wrists & hips",
-    prompts:{down:"▼  Go Down", up:"▲  Push Up", good_down:"✓  Full Depth!", wait:"Get into push-up position"},
-    check(a){ const v=avgElbow(a); if(v===null)return{phase:null}; if(v>145)return{phase:"up"}; if(v<90)return{phase:"down"}; return{phase:"mid"}; },
-    romValue(a){ return avgElbow(a); }
-  },
+
   bicep_curl:{
     name:"Bicep Curls", type:"rep", target:12,
     joints:["LElbow","RElbow"],
@@ -438,7 +426,7 @@ function checkRequiredParts(lm, requiredGroups) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // STATE
-let poseLandmarker=null, running=false, currentEx="pushup";
+let poseLandmarker=null, running=false, currentEx="arm_raise";
 let repCount=0, repPhase="up", holdStart=null, sessionLog=[], bodyDetected=false, showGhost=false;
 // Tracks whether parts were missing last frame (to throttle warning flicker)
 let partsOk=true;
@@ -682,7 +670,7 @@ function detect(){
       // Parts missing — block counting, show warning
       detectionBadge.classList.remove("detected");
       detectionBadge.classList.add("warn");
-      detectionBadge.textContent="Parts out of frame ⚠";
+      detectionBadge.textContent="Necessary body parts out of frame ⚠";
       setPartsWarning(missing);
       setPrompt(`Step back — ${ex.frameHint}`, "warn");
       if(ex.type==="hold") pauseHold();
