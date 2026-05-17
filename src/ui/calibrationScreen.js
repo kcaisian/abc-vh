@@ -149,7 +149,7 @@ const CSS = `
 
   /* Instruction card */
   .cal-card {
-    background: var(--surface);
+    background: var(--bg);
     border-left: 1px solid var(--surface2);
     padding: 20px;
     display: flex;
