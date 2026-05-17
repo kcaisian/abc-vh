@@ -28,7 +28,10 @@ function render() {
         background-repeat:no-repeat;
         background-color:#2d1f16;
       ">
-        <h1 style="font-size:2.5rem;font-weight:700;color:var(--accent)">ABC</h1>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <img src="/src/assets/logo.png" style="height:48px;width:auto;" alt="logo" />
+          <h1 style="font-size:2.5rem;font-weight:700;color:var(--accent)">ABC</h1>
+        </div>
         <p style="color:var(--text-muted);max-width:400px;line-height:1.6">
           Fitness that meets you where you are.<br>
           We measure <em>your</em> range of motion — then build workouts around it.

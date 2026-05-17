@@ -142,7 +142,7 @@
   <script>
     async function loadSidebar() {
       try {
-        const response = await fetch("sidebar.html");
+        const response = await fetch("/sidebar.html");
         const html = await response.text();
         const template = document.createElement("template");
         template.innerHTML = html;

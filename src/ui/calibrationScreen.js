@@ -207,7 +207,7 @@ const CSS = `
     border-radius: var(--radius);
     color: var(--accent2);
     font-size: 2.75rem;
-    font-family: var(--font-mono);
+    font-family: var(--mono);
     font-weight: 700;
     text-align: right;
   }
@@ -218,7 +218,7 @@ const CSS = `
     padding: 10px 20px;
     cursor: pointer;
     border-radius: var(--radius);
-    font-family: var(--font);
+    font-family: var(--mono);
     font-size: 1rem;
     transition: opacity 0.15s, transform 0.1s, border-color 0.15s, color 0.15s;
   }
@@ -283,7 +283,10 @@ export function mountCalibrationScreen(container) {
     <div class="cal-screen">
       <div class="cal-header">
         <div class="cal-progress-row">
-          <a href="#home" class="cal-home-link" title="Back to home">ABC</a>
+          <a href="#home" class="cal-home-link" title="Back to home" style="display:flex;align-items:center;gap:8px;">
+            <img src="/src/assets/logo.png" style="height:28px;width:auto;" alt="logo" />
+            ABC
+          </a>
           <h2 id="cal-step-counter">Setting up…</h2>
           <div class="progress-track">
             <div class="progress-fill" id="cal-progress" style="width:0%"></div>

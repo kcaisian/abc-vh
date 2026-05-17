@@ -5,8 +5,8 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap');
+/* Google Fonts — 2 families only */
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap');
 
 :root {
   /* ── Core palette ── */
@@ -16,9 +16,9 @@
   --border:   #7a5f4f;
 
   /* ── Accent scale ── */
-  --accent:   #c9a77b;   /* warm gold — primary interactive */
-  --accent2:  #d6b992;   /* lighter gold — hover / secondary */
-  --accent3:  #a67a53;   /* deep amber — warnings / partial */
+  --accent:   #c9a77b;
+  --accent2:  #d6b992;
+  --accent3:  #a67a53;
 
   /* ── Text ── */
   --text:     #f4ede3;
@@ -32,10 +32,14 @@
   /* ── Shape ── */
   --radius: 12px;
 
-  /* ── Typography ── */
-  --mono:  'DM Mono', monospace;
-  --serif: 'Fraunces', serif;
-  --sans:  'DM Sans', system-ui, sans-serif;
+  /* ── Typography — two families ── */
+  --mono:      'DM Mono', monospace;   /* UI text, labels, buttons, body */
+  --serif:     'Fraunces', serif;      /* headings, large numbers, logos  */
+
+  /* Legacy aliases so calibrationScreen.js keeps working */
+  --font:      var(--mono);
+  --font-mono: var(--mono);
+  --sans:      var(--mono);            /* anything using --sans falls back to mono */
 }
 
 html, body {
