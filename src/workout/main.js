@@ -8,6 +8,42 @@
 import { PoseLandmarker, FilesetResolver }
   from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
 
+// ── MOBILITY PROFILE ──────────────────────────────────────────────────────────
+// Load the profile saved during calibration. Falls back gracefully if missing.
+function loadProfile() {
+  try {
+    const raw = localStorage.getItem('af_mobility_profile')
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+/**
+ * Get the user's personal max ROM for a joint, scaled by pct.
+ * e.g. getPersonalAngle('elbow_right', 0.85) → 85% of their max elbow angle
+ * Returns null if no profile / joint was skipped.
+ */
+function getPersonalAngle(jointKey, pct = 0.85) {
+  const joint = userProfile?.joints?.[jointKey]
+  if (!joint || joint.skipped || joint.maxROM === 0) return null
+  return Math.round(joint.maxROM * pct)
+}
+
+/**
+ * Average the personal angles for left + right joints.
+ * Used for bilateral exercises (e.g. both elbows).
+ */
+function avgPersonalAngle(jointKeyL, jointKeyR, pct = 0.85) {
+  const l = getPersonalAngle(jointKeyL, pct)
+  const r = getPersonalAngle(jointKeyR, pct)
+  if (l === null && r === null) return null
+  if (l === null) return r
+  if (r === null) return l
+  return Math.round((l + r) / 2)
+}
+
+const userProfile = loadProfile()
+const hasProfile = !!userProfile
+
 // ── GHOST POSE SKELETON CONNECTIONS ──────────────────────────────────────────
 // 12-point simplified skeleton:
 // [0]=L-shoulder [1]=R-shoulder [2]=L-elbow [3]=R-elbow [4]=L-wrist [5]=R-wrist
@@ -147,7 +183,13 @@ const EXERCISES = {
     requiredGroups:["LShoulderElbow","RShoulderElbow","LElbowWrist","RElbowWrist","LHip","RHip"],
     frameHint:"Show full upper body — shoulders, elbows, wrists & hips",
     phaseLabels:{ up:"Go down", down:"Push up" },
-    check(a){ const v=avgElbow(a); if(v===null)return{phase:null}; if(v>145)return{phase:"up"}; if(v<90)return{phase:"down"}; return{phase:"mid"}; },
+    check(a){
+      const v=avgElbow(a); if(v===null)return{phase:null};
+      // Personal: top = 95% of max elbow (arms extended), bottom = 15% (deep bend)
+      const top = avgPersonalAngle('elbow_right','elbow_left', 0.95) ?? 145
+      const bot = avgPersonalAngle('elbow_right','elbow_left', 0.15) ?? 90
+      if(v>top)return{phase:"up"}; if(v<bot)return{phase:"down"}; return{phase:"mid"};
+    },
     romValue(a){ return avgElbow(a); }
   },
   bicep_curl:{
@@ -156,7 +198,13 @@ const EXERCISES = {
     requiredGroups:["LShoulderElbow","RShoulderElbow","LElbowWrist","RElbowWrist"],
     frameHint:"Show full arms — shoulders to wrists",
     phaseLabels:{ up:"Lower arms", down:"Curl up" },
-    check(a){ const v=avgElbow(a); if(v===null)return{phase:null}; if(v>140)return{phase:"down"}; if(v<70)return{phase:"up"}; return{phase:"mid"}; },
+    check(a){
+      const v=avgElbow(a); if(v===null)return{phase:null};
+      // Personal: top = 90% of max (arms down/extended), bottom = 25% (fully curled)
+      const top = avgPersonalAngle('elbow_right','elbow_left', 0.90) ?? 140
+      const bot = avgPersonalAngle('elbow_right','elbow_left', 0.25) ?? 70
+      if(v>top)return{phase:"down"}; if(v<bot)return{phase:"up"}; return{phase:"mid"};
+    },
     romValue(a){ return avgElbow(a); }
   },
   arm_raise:{
@@ -165,7 +213,13 @@ const EXERCISES = {
     requiredGroups:["LShoulderElbow","RShoulderElbow","LElbowWrist","RElbowWrist","LHip","RHip"],
     frameHint:"Show full body — head to hips, arms fully extended",
     phaseLabels:{ up:"Lower arms", down:"Raise arms" },
-    check(a){ const v=avgShoulder(a); if(v===null)return{phase:null}; if(v<35)return{phase:"down"}; if(v>70)return{phase:"up"}; return{phase:"mid"}; },
+    check(a){
+      const v=avgShoulder(a); if(v===null)return{phase:null};
+      // Personal: arms-down threshold = 20% of max, arms-up = 75% of max
+      const bot = avgPersonalAngle('shoulder_right','shoulder_left', 0.20) ?? 35
+      const top = avgPersonalAngle('shoulder_right','shoulder_left', 0.75) ?? 70
+      if(v<bot)return{phase:"down"}; if(v>top)return{phase:"up"}; return{phase:"mid"};
+    },
     romValue(a){ return avgShoulder(a); }
   },
   shoulder_press:{
@@ -174,7 +228,13 @@ const EXERCISES = {
     requiredGroups:["LShoulderElbow","RShoulderElbow","LElbowWrist","RElbowWrist"],
     frameHint:"Show full arms — shoulders to wrists, overhead included",
     phaseLabels:{ up:"Lower hands", down:"Press up" },
-    check(a){ const v=avgElbow(a); if(v===null)return{phase:null}; if(v<100)return{phase:"up"}; if(v>140)return{phase:"down"}; return{phase:"mid"}; },
+    check(a){
+      const v=avgElbow(a); if(v===null)return{phase:null};
+      // Personal: pressed up = 20% of elbow max (arms extended overhead), down = 80%
+      const top = avgPersonalAngle('elbow_right','elbow_left', 0.20) ?? 100
+      const bot = avgPersonalAngle('elbow_right','elbow_left', 0.80) ?? 140
+      if(v<top)return{phase:"up"}; if(v>bot)return{phase:"down"}; return{phase:"mid"};
+    },
     romValue(a){ return avgElbow(a); }
   },
   chest_stretch:{
@@ -184,7 +244,12 @@ const EXERCISES = {
     requiredGroups:["LShoulderElbow","RShoulderElbow","LElbowWrist","RElbowWrist"],
     frameHint:"Show full arms outstretched — shoulders to wrists",
     phaseLabels:{ hold:"Hold the stretch", rest:"Open arms wider" },
-    check(a){ const v=avgShoulder(a); if(v===null)return{phase:null}; if(v>70)return{phase:"hold"}; return{phase:"rest"}; },
+    check(a){
+      const v=avgShoulder(a); if(v===null)return{phase:null};
+      // Personal: hold threshold = 65% of max shoulder ROM
+      const threshold = avgPersonalAngle('shoulder_right','shoulder_left', 0.65) ?? 70
+      if(v>threshold)return{phase:"hold"}; return{phase:"rest"};
+    },
     romValue(a){ return avgShoulder(a); }
   },
   t_pose:{
@@ -194,7 +259,12 @@ const EXERCISES = {
     requiredGroups:["LShoulderElbow","RShoulderElbow","LElbowWrist","RElbowWrist","LHip","RHip"],
     frameHint:"Show full upper body — shoulders, elbows, wrists & hips",
     phaseLabels:{ hold:"Hold the T-Pose", rest:"Raise arms to shoulder height" },
-    check(a){ const v=avgShoulder(a); if(v===null)return{phase:null}; if(v>75)return{phase:"hold"}; return{phase:"rest"}; },
+    check(a){
+      const v=avgShoulder(a); if(v===null)return{phase:null};
+      // Personal: hold threshold = 70% of max shoulder ROM
+      const threshold = avgPersonalAngle('shoulder_right','shoulder_left', 0.70) ?? 75
+      if(v>threshold)return{phase:"hold"}; return{phase:"rest"};
+    },
     romValue(a){ return avgShoulder(a); }
   },
 };
@@ -301,14 +371,13 @@ function lerpJoints(from,to,t){
 
 function drawGhostPose(lm) {
   const W=ghostCanvas.width, H=ghostCanvas.height;
-  gctx.clearRect(0,0,W,H);
   if(!ghostVisible){poseMatchBar.classList.remove("visible");ghostLabel.classList.remove("visible");return;}
   const ex=EXERCISES[currentEx];
-  if(!ex.poses)return;
+  if(!ex.poses){poseMatchBar.classList.remove("visible");return;}
   const poseKey=getTargetPoseKey(ex);
-  if(!poseKey)return;
+  if(!poseKey){poseMatchBar.classList.remove("visible");return;}
   const targetJoints=ex.poses[poseKey];
-  if(!targetJoints)return;
+  if(!targetJoints){poseMatchBar.classList.remove("visible");return;}
   if(ghostMorphTo!==targetJoints){
     ghostMorphFrom=ghostMorphTo?lerpJoints(ghostMorphFrom,ghostMorphTo,ghostMorphT):targetJoints;
     ghostMorphTo=targetJoints; ghostMorphT=0;
@@ -322,17 +391,39 @@ function drawGhostPose(lm) {
   const r=Math.round(255-matchScore*100), g=Math.round(145+matchScore*110), b=Math.round(60-matchScore*20);
   const alpha=0.75+matchScore*0.2;
   const color=`rgba(${r},${g},${b},${alpha})`;
-  gctx.save(); gctx.setLineDash([7,5]); gctx.lineCap="round"; gctx.lineWidth=5; gctx.strokeStyle=color;
+
+  // ── Bones ──
+  gctx.save();
+  gctx.setLineDash([7,5]); gctx.lineCap="round"; gctx.lineWidth=5; gctx.strokeStyle=color;
   for(const[a,b2]of GC){const pA=S(joints[a]),pB=S(joints[b2]);gctx.beginPath();gctx.moveTo(pA.x,pA.y);gctx.lineTo(pB.x,pB.y);gctx.stroke();}
-  gctx.setLineDash([]); gctx.fillStyle=color; gctx.strokeStyle=color; gctx.lineWidth=1.5;
+  gctx.restore();
+
+  // ── Joint dots ──
+  gctx.save();
+  gctx.setLineDash([]);
+  gctx.fillStyle=color; gctx.strokeStyle=color; gctx.lineWidth=1.5;
   for(let i=0;i<joints.length;i++){const p=S(joints[i]);gctx.beginPath();gctx.arc(p.x,p.y,i<2?6:5,0,Math.PI*2);gctx.fill();gctx.stroke();}
+  gctx.restore();
+
+  // ── Head circle ──
   const smx=(S(joints[0]).x+S(joints[1]).x)/2, smy=(S(joints[0]).y+S(joints[1]).y)/2;
   const hc={x:smx,y:smy-scale*0.55};
+  gctx.save();
   gctx.beginPath();gctx.arc(hc.x,hc.y,scale*0.18,0,Math.PI*2);
   gctx.fillStyle=`rgba(${r},${g},${b},0.18)`;gctx.fill();
-  gctx.strokeStyle=color;gctx.lineWidth=2;gctx.setLineDash([5,4]);gctx.stroke();gctx.setLineDash([]);
-  if(matchScore>0.75){const pulse=0.5+0.5*Math.sin(Date.now()*0.008);gctx.beginPath();gctx.arc(hc.x,hc.y,scale*0.18+8+pulse*6,0,Math.PI*2);gctx.strokeStyle=`rgba(110,231,160,${0.4+pulse*0.3})`;gctx.lineWidth=2;gctx.stroke();}
+  gctx.strokeStyle=color;gctx.lineWidth=2;gctx.setLineDash([5,4]);gctx.stroke();
   gctx.restore();
+
+  // ── Pulse ring (only when matched) ──
+  if(matchScore>0.75){
+    const pulse=0.5+0.5*Math.sin(Date.now()*0.008);
+    gctx.save();
+    gctx.setLineDash([]);
+    gctx.beginPath();gctx.arc(hc.x,hc.y,scale*0.18+8+pulse*6,0,Math.PI*2);
+    gctx.strokeStyle=`rgba(110,231,160,${0.4+pulse*0.3})`;gctx.lineWidth=2;gctx.stroke();
+    gctx.restore();
+  }
+
   updatePoseMatchUI(matchScore,poseKey,ex);
 }
 
@@ -350,24 +441,45 @@ function updatePoseMatchUI(score,poseKey,ex){
 function triggerPhaseFlash(){phaseFlash.classList.add("flash");setTimeout(()=>phaseFlash.classList.remove("flash"),120);}
 
 // ── LIVE SKELETON ──
-const SKEL=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28]];
+// Connections identical to camera.js — including hand landmarks
+const SKEL=[
+  [11,12],[11,13],[13,15],[12,14],[14,16],  // upper body
+  [11,23],[12,24],[23,24],                  // torso
+  [23,25],[25,27],[24,26],[26,28],           // legs
+  [15,17],[15,19],[16,18],[16,20],           // hands
+];
 const SKEL_POINTS=new Set(SKEL.flat());
 
 function drawSkeleton(lm,missingIndices){
   const W=canvas.width,H=canvas.height,missingSet=new Set(missingIndices||[]);
-  ctx.setLineDash([]);
-  for(const[a,b]of SKEL){
-    const lA=lm[a],lB=lm[b];if(!lA||!lB||lA.visibility<0.3||lB.visibility<0.3)continue;
-    ctx.strokeStyle=(missingSet.has(a)||missingSet.has(b))?"rgba(145,90,58,0.7)":"rgba(201,167,123,0.6)";
-    ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(lA.x*W,lA.y*H);ctx.lineTo(lB.x*W,lB.y*H);ctx.stroke();
-  }
+
+  // No manual mirror — the canvas has CSS transform:scaleX(-1) matching the video
+  const lx=l=>l.x*W
+  const ly=l=>l.y*H
+
+  // Active joints for the current exercise (shown as yellow highlights)
   const JI={LElbow:13,RElbow:14,LShoulder:11,RShoulder:12,LKnee:25,RKnee:26};
   const ex=EXERCISES[currentEx]||{};
-  const targetIdx=new Set((ex.joints||[]).map(j=>JI[j]).filter(Boolean));
-  for(const i of SKEL_POINTS){
+  const highlightIndices=(ex.joints||[]).map(j=>JI[j]).filter(Boolean);
+
+  // ── Bones ──
+  ctx.lineWidth=2;
+  ctx.setLineDash([]);
+  for(const[a,b]of SKEL){
+    const la=lm[a],lb=lm[b];
+    if(!la||!lb||la.visibility<0.4||lb.visibility<0.4)continue;
+    ctx.strokeStyle=(missingSet.has(a)||missingSet.has(b))?"rgba(247,80,80,0.7)":"rgba(255,255,255,0.6)";
+    ctx.beginPath();ctx.moveTo(lx(la),ly(la));ctx.lineTo(lx(lb),ly(lb));ctx.stroke();
+  }
+
+  // ── Dots — iterate all 33 landmarks, same as camera.js ──
+  for(let i=0;i<lm.length;i++){
     const l=lm[i];if(!l||l.visibility<0.4)continue;
-    ctx.beginPath();ctx.arc(l.x*W,l.y*H,7,0,Math.PI*2);
-    ctx.fillStyle=missingSet.has(i)?"rgba(145,90,58,0.9)":targetIdx.has(i)?"rgba(201,167,123,0.95)":"rgba(216,186,148,0.9)";
+    const isHighlighted=highlightIndices.includes(i);
+    const isMissing=missingSet.has(i);
+    ctx.beginPath();
+    ctx.arc(lx(l),ly(l),isHighlighted?5*1.8:5,0,Math.PI*2);
+    ctx.fillStyle=isMissing?"rgba(247,80,80,0.9)":isHighlighted?"#ffeb3b":"#00e5ff";
     ctx.fill();
   }
 }
@@ -461,8 +573,8 @@ function getMissingLandmarkIndices(lm,requiredGroups){
 function detect(){
   if(!running)return;
   if(!poseLandmarker||video.readyState<2){requestAnimationFrame(detect);return;}
-  canvas.width=video.videoWidth; canvas.height=video.videoHeight;
-  ghostCanvas.width=video.videoWidth; ghostCanvas.height=video.videoHeight;
+    canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+    ghostCanvas.width=video.videoWidth; ghostCanvas.height=video.videoHeight;
   ctx.clearRect(0,0,canvas.width,canvas.height);
   const results=poseLandmarker.detectForVideo(video,performance.now());
   if(results.landmarks&&results.landmarks.length>0){
@@ -511,6 +623,19 @@ window.startCamera=async function(){
     sp.style.display="none";detectionBadge.classList.add("visible");
     document.getElementById("statusDot").classList.add("live");
     document.getElementById("statusText").textContent="live";
+
+    // Show whether personal calibration profile is active
+    const profileBadge = document.getElementById("profileBadge")
+    if (profileBadge) {
+      if (hasProfile) {
+        profileBadge.textContent = "✓ Personal profile active"
+        profileBadge.style.color = "var(--accent)"
+      } else {
+        profileBadge.textContent = "⚠ No profile — using defaults"
+        profileBadge.style.color = "var(--muted)"
+      }
+      profileBadge.style.display = "block"
+    }
     running=true;ghostMorphTo=null;ghostMorphFrom=null;ghostMorphT=0;
     setPrompt(EXERCISES[currentEx].phaseLabels?.wait||"Get ready");detect();
   }catch(e){
