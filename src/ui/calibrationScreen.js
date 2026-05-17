@@ -133,6 +133,8 @@ const CSS = `
     justify-content: center;
     text-align: center;
     padding: 0 12px;
+    align-self: flex-start;
+    margin-top: 24px;
   }
   .countdown-badge.waiting {
     font-size: 2.5rem;
@@ -462,7 +464,7 @@ export function mountCalibrationScreen(container) {
       }
       stepLabel.textContent = 'Rest…'
       instruction.textContent = 'Take a breath before the next movement.'
-      skipBtn.style.visibility = 'hidden'
+      skipBtn.style.visibility = 'visible'
       skipBtn.style.display = 'inline-block'
     }
   }
@@ -488,7 +490,7 @@ export function mountCalibrationScreen(container) {
         </div>
         <div class="cal-card">
           <div class="cal-actions">
-            <a href="#workout">
+            <a href="exercise-tracker_4.html">
               <button class="btn-primary">Start your first workout →</button>
             </a>
             <button class="btn-ghost" onclick="location.hash='#calibrate';location.reload()">

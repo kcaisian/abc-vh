@@ -388,7 +388,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);display:flex
         <p class="ex-detail-desc" id="exDetailDesc"></p>
         <div class="stat-lbl" style="margin-top:4px">HOW TO DO IT</div>
         <div class="how-to-list" id="exDetailSteps"></div>
-        <button class="start-ex-btn" onclick="goToTracker()">Start Exercise →</button>
+        <a href="exercise_tracker_3.html"><button class="start-ex-btn">Start Exercise →</button></a>
       </div>
     </div>
   </div>
@@ -894,195 +894,195 @@ function updateFrameCheck(lm){
 // ══════════════════════════════════════
 // GHOST POSE DRAWING
 // ══════════════════════════════════════
-function drawGhost(lm,poseKey){
-  const gk=ghostKey(selectedExercise.id);
-  if(!gk||!GP[gk])return;
-  const poses=GP[gk];
-  const key=poses[poseKey]?poseKey:(poses.hold?'hold':(poses.rest?'rest':'up'));
-  const joints=poses[key];if(!joints)return;
-  const ls=lm[11],rs=lm[12];if(!ls||!rs)return;
-  const W=canvas.width,H=canvas.height;
-  const cx=((ls.x+rs.x)/2)*W,cy=((ls.y+rs.y)/2)*H;
-  const sw=Math.abs(rs.x-ls.x)*W,scale=sw*.85;if(scale<10)return;
-  const S=pt=>({x:cx+pt.x*scale,y:cy+pt.y*scale});
-  ctx.save();ctx.setLineDash([7,5]);ctx.strokeStyle='rgba(240,212,78,0.4)';ctx.lineWidth=2.5;
-  for(const[a,b]of GC){const pA=S(joints[a]),pB=S(joints[b]);ctx.beginPath();ctx.moveTo(pA.x,pA.y);ctx.lineTo(pB.x,pB.y);ctx.stroke();}
-  ctx.setLineDash([]);ctx.fillStyle='rgba(240,212,78,0.48)';
-  for(const pt of joints){const p=S(pt);ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.fill();}
-  ctx.restore();
-}
+// function drawGhost(lm,poseKey){
+//   const gk=ghostKey(selectedExercise.id);
+//   if(!gk||!GP[gk])return;
+//   const poses=GP[gk];
+//   const key=poses[poseKey]?poseKey:(poses.hold?'hold':(poses.rest?'rest':'up'));
+//   const joints=poses[key];if(!joints)return;
+//   const ls=lm[11],rs=lm[12];if(!ls||!rs)return;
+//   const W=canvas.width,H=canvas.height;
+//   const cx=((ls.x+rs.x)/2)*W,cy=((ls.y+rs.y)/2)*H;
+//   const sw=Math.abs(rs.x-ls.x)*W,scale=sw*.85;if(scale<10)return;
+//   const S=pt=>({x:cx+pt.x*scale,y:cy+pt.y*scale});
+//   ctx.save();ctx.setLineDash([7,5]);ctx.strokeStyle='rgba(240,212,78,0.4)';ctx.lineWidth=2.5;
+//   for(const[a,b]of GC){const pA=S(joints[a]),pB=S(joints[b]);ctx.beginPath();ctx.moveTo(pA.x,pA.y);ctx.lineTo(pB.x,pB.y);ctx.stroke();}
+//   ctx.setLineDash([]);ctx.fillStyle='rgba(240,212,78,0.48)';
+//   for(const pt of joints){const p=S(pt);ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.fill();}
+//   ctx.restore();
+// }
 
-// ══════════════════════════════════════
-// LIVE SKELETON
-// ══════════════════════════════════════
-const video=document.getElementById('video'),canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
-const SKEL=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28]];
-function drawSkeleton(lm){
-  const W=canvas.width,H=canvas.height;
-  ctx.setLineDash([]);ctx.strokeStyle='rgba(78,240,154,0.6)';ctx.lineWidth=2.5;
-  for(const[a,b]of SKEL){const lA=lm[a],lB=lm[b];if(!lA||!lB||lA.visibility<0.3||lB.visibility<0.3)continue;ctx.beginPath();ctx.moveTo(lA.x*W,lA.y*H);ctx.lineTo(lB.x*W,lB.y*H);ctx.stroke();}
-  for(const l of lm){if(!l||l.visibility<0.4)continue;ctx.beginPath();ctx.arc(l.x*W,l.y*H,4,0,Math.PI*2);ctx.fillStyle='rgba(78,240,154,0.9)';ctx.fill();}
-}
+// // ══════════════════════════════════════
+// // LIVE SKELETON
+// // ══════════════════════════════════════
+// const video=document.getElementById('video'),canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+// const SKEL=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28]];
+// function drawSkeleton(lm){
+//   const W=canvas.width,H=canvas.height;
+//   ctx.setLineDash([]);ctx.strokeStyle='rgba(78,240,154,0.6)';ctx.lineWidth=2.5;
+//   for(const[a,b]of SKEL){const lA=lm[a],lB=lm[b];if(!lA||!lB||lA.visibility<0.3||lB.visibility<0.3)continue;ctx.beginPath();ctx.moveTo(lA.x*W,lA.y*H);ctx.lineTo(lB.x*W,lB.y*H);ctx.stroke();}
+//   for(const l of lm){if(!l||l.visibility<0.4)continue;ctx.beginPath();ctx.arc(l.x*W,l.y*H,4,0,Math.PI*2);ctx.fillStyle='rgba(78,240,154,0.9)';ctx.fill();}
+// }
 
-// ══════════════════════════════════════
-// ROM BAR
-// ══════════════════════════════════════
-const romFill=document.getElementById('romFill'),romTarget=document.getElementById('romTarget'),romPct=document.getElementById('romPct');
-function updateROM(angles){
-  const ex=selectedExercise;const val=ex.romValue(angles);
-  if(val===null){romPct.textContent='—';romFill.style.height='0%';return;}
-  const range=Math.abs(ex.romBottom-ex.romTop);
-  let pct=ex.romBottom<ex.romTop?Math.round(((ex.romTop-val)/range)*100):Math.round(((val-ex.romTop)/range)*100);
-  pct=Math.max(0,Math.min(100,pct));
-  romFill.style.height=pct+'%';romPct.textContent=pct+'%';
-  romFill.className='rom-fill'+(pct>=ex.romTargetPct?' deep':pct>=ex.romTargetPct*.5?' mid':'');
-}
+// // ══════════════════════════════════════
+// // ROM BAR
+// // ══════════════════════════════════════
+// const romFill=document.getElementById('romFill'),romTarget=document.getElementById('romTarget'),romPct=document.getElementById('romPct');
+// function updateROM(angles){
+//   const ex=selectedExercise;const val=ex.romValue(angles);
+//   if(val===null){romPct.textContent='—';romFill.style.height='0%';return;}
+//   const range=Math.abs(ex.romBottom-ex.romTop);
+//   let pct=ex.romBottom<ex.romTop?Math.round(((ex.romTop-val)/range)*100):Math.round(((val-ex.romTop)/range)*100);
+//   pct=Math.max(0,Math.min(100,pct));
+//   romFill.style.height=pct+'%';romPct.textContent=pct+'%';
+//   romFill.className='rom-fill'+(pct>=ex.romTargetPct?' deep':pct>=ex.romTargetPct*.5?' mid':'');
+// }
 
-// ══════════════════════════════════════
-// STEP PROMPT
-// ══════════════════════════════════════
-const stepPrompt=document.getElementById('stepPrompt');
-function setPrompt(text,good){if(!text){stepPrompt.classList.remove('show','good');return;}stepPrompt.textContent=text;stepPrompt.classList.add('show');stepPrompt.classList.toggle('good',!!good);}
+// // ══════════════════════════════════════
+// // STEP PROMPT
+// // ══════════════════════════════════════
+// const stepPrompt=document.getElementById('stepPrompt');
+// function setPrompt(text,good){if(!text){stepPrompt.classList.remove('show','good');return;}stepPrompt.textContent=text;stepPrompt.classList.add('show');stepPrompt.classList.toggle('good',!!good);}
 
-// ══════════════════════════════════════
-// REP / HOLD LOGIC — only runs when inFrameReady
-// ══════════════════════════════════════
-const holdRing=document.getElementById('holdRing'),holdArc=document.getElementById('holdArc'),holdTimerEl=document.getElementById('holdTimer');
-const ARC=207.3;
-const repCountEl=document.getElementById('repCount'),progFill=document.getElementById('progFill');
-const logScroll=document.getElementById('logScroll');
+// // ══════════════════════════════════════
+// // REP / HOLD LOGIC — only runs when inFrameReady
+// // ══════════════════════════════════════
+// const holdRing=document.getElementById('holdRing'),holdArc=document.getElementById('holdArc'),holdTimerEl=document.getElementById('holdTimer');
+// const ARC=207.3;
+// const repCountEl=document.getElementById('repCount'),progFill=document.getElementById('progFill');
+// const logScroll=document.getElementById('logScroll');
 
-function processReps(phase){
-  const ex=selectedExercise;
-  if(phase===null){setPrompt(ex.prompts.wait,false);return;}
-  if(phase==='up'&&repPhase==='down'){repPhase='up';setPrompt(ex.prompts.down,false);}
-  else if(phase==='down'&&repPhase==='up'){repPhase='down';addRep();setPrompt(ex.prompts.good||'✓ Rep!',true);setTimeout(()=>setPrompt(ex.prompts.up,false),900);return;}
-  if(phase!=='mid')setPrompt(repPhase==='up'?ex.prompts.down:ex.prompts.up,false);
-}
+// function processReps(phase){
+//   const ex=selectedExercise;
+//   if(phase===null){setPrompt(ex.prompts.wait,false);return;}
+//   if(phase==='up'&&repPhase==='down'){repPhase='up';setPrompt(ex.prompts.down,false);}
+//   else if(phase==='down'&&repPhase==='up'){repPhase='down';addRep();setPrompt(ex.prompts.good||'✓ Rep!',true);setTimeout(()=>setPrompt(ex.prompts.up,false),900);return;}
+//   if(phase!=='mid')setPrompt(repPhase==='up'?ex.prompts.down:ex.prompts.up,false);
+// }
 
-function processHold(phase){
-  const ex=selectedExercise;
-  if(phase==='hold'){
-    if(!holdStart)holdStart=Date.now();
-    const e=(Date.now()-holdStart)/1000,frac=Math.min(e/ex.holdTarget,1);
-    holdArc.style.strokeDashoffset=ARC*(1-frac);holdTimerEl.textContent=Math.floor(e)+'s';
-    holdRing.classList.add('visible');setPrompt(ex.prompts.hold,false);
-    if(e>=ex.holdTarget){addRep();holdStart=null;}
-  } else {
-    holdStart=null;holdArc.style.strokeDashoffset=ARC;holdTimerEl.textContent='0s';
-    holdRing.classList.remove('visible');setPrompt(phase===null?ex.prompts.wait:ex.prompts.rest,false);
-  }
-}
+// function processHold(phase){
+//   const ex=selectedExercise;
+//   if(phase==='hold'){
+//     if(!holdStart)holdStart=Date.now();
+//     const e=(Date.now()-holdStart)/1000,frac=Math.min(e/ex.holdTarget,1);
+//     holdArc.style.strokeDashoffset=ARC*(1-frac);holdTimerEl.textContent=Math.floor(e)+'s';
+//     holdRing.classList.add('visible');setPrompt(ex.prompts.hold,false);
+//     if(e>=ex.holdTarget){addRep();holdStart=null;}
+//   } else {
+//     holdStart=null;holdArc.style.strokeDashoffset=ARC;holdTimerEl.textContent='0s';
+//     holdRing.classList.remove('visible');setPrompt(phase===null?ex.prompts.wait:ex.prompts.rest,false);
+//   }
+// }
 
-function addRep(){
-  const ex=selectedExercise;repCount++;
-  repCountEl.classList.remove('pop');void repCountEl.offsetWidth;repCountEl.classList.add('pop');
-  repCountEl.textContent=repCount;progFill.style.width=Math.min(repCount/ex.target*100,100)+'%';
-  const now=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  sessionLog.unshift({time:now,text:`${ex.name} — ${ex.type==='hold'?'Hold':'Rep'} ${repCount}`});
-  renderLog();
-}
-function renderLog(){if(!sessionLog.length){logScroll.innerHTML='<div class="log-row" style="color:var(--muted);font-size:11px">No reps yet</div>';return;}logScroll.innerHTML=sessionLog.slice(0,12).map(e=>`<div class="log-row"><span>${e.text}</span><span class="log-t">${e.time}</span></div>`).join('');}
+// function addRep(){
+//   const ex=selectedExercise;repCount++;
+//   repCountEl.classList.remove('pop');void repCountEl.offsetWidth;repCountEl.classList.add('pop');
+//   repCountEl.textContent=repCount;progFill.style.width=Math.min(repCount/ex.target*100,100)+'%';
+//   const now=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+//   sessionLog.unshift({time:now,text:`${ex.name} — ${ex.type==='hold'?'Hold':'Rep'} ${repCount}`});
+//   renderLog();
+// }
+// function renderLog(){if(!sessionLog.length){logScroll.innerHTML='<div class="log-row" style="color:var(--muted);font-size:11px">No reps yet</div>';return;}logScroll.innerHTML=sessionLog.slice(0,12).map(e=>`<div class="log-row"><span>${e.text}</span><span class="log-t">${e.time}</span></div>`).join('');}
 
-function updateAngleReadouts(angles){
-  const ex=selectedExercise;
-  [['LElbow','aLE'],['RElbow','aRE'],['LShoulder','aLS'],['RShoulder','aRS'],['LKnee','aLK'],['RKnee','aRK']].forEach(([k,id])=>{
-    const el=document.getElementById(id),v=angles[k];
-    el.textContent=v!==null?v+'°':'—°';el.classList.toggle('on',ex.joints.includes(k)&&v!==null);
-  });
-}
+// function updateAngleReadouts(angles){
+//   const ex=selectedExercise;
+//   [['LElbow','aLE'],['RElbow','aRE'],['LShoulder','aLS'],['RShoulder','aRS'],['LKnee','aLK'],['RKnee','aRK']].forEach(([k,id])=>{
+//     const el=document.getElementById(id),v=angles[k];
+//     el.textContent=v!==null?v+'°':'—°';el.classList.toggle('on',ex.joints.includes(k)&&v!==null);
+//   });
+// }
 
-// ══════════════════════════════════════
-// MAIN DETECT LOOP
-// ══════════════════════════════════════
-const detectBadge=document.getElementById('detectBadge');
-function detect(){
-  if(!running)return;
-  if(!poseLandmarker||video.readyState<2){requestAnimationFrame(detect);return;}
-  canvas.width=video.videoWidth;canvas.height=video.videoHeight;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  const results=poseLandmarker.detectForVideo(video,performance.now());
+// // ══════════════════════════════════════
+// // MAIN DETECT LOOP
+// // ══════════════════════════════════════
+// const detectBadge=document.getElementById('detectBadge');
+// function detect(){
+//   if(!running)return;
+//   if(!poseLandmarker||video.readyState<2){requestAnimationFrame(detect);return;}
+//   canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+//   ctx.clearRect(0,0,canvas.width,canvas.height);
+//   const results=poseLandmarker.detectForVideo(video,performance.now());
 
-  if(results.landmarks&&results.landmarks.length>0){
-    const lm=results.landmarks[0];
-    const angles=getAngles(lm);
+//   if(results.landmarks&&results.landmarks.length>0){
+//     const lm=results.landmarks[0];
+//     const angles=getAngles(lm);
 
-    if(!bodyDetected){bodyDetected=true;detectBadge.classList.add('visible','ok');detectBadge.classList.remove('warn');detectBadge.textContent='Body detected ✓';}
+//     if(!bodyDetected){bodyDetected=true;detectBadge.classList.add('visible','ok');detectBadge.classList.remove('warn');detectBadge.textContent='Body detected ✓';}
 
-    // Frame check: must have required joints before counting
-    const allInFrame=updateFrameCheck(lm);
+//     // Frame check: must have required joints before counting
+//     const allInFrame=updateFrameCheck(lm);
 
-    const ex=selectedExercise;
-    const{phase}=ex.check(angles);
+//     const ex=selectedExercise;
+//     const{phase}=ex.check(angles);
 
-    // Ghost shows what to do next
-    if(showGhost){
-      const gk=phase==='down'||phase==='hold'?'down':(phase==='up'?'up':(repPhase==='up'?'down':'up'));
-      drawGhost(lm,gk);
-    }
-    drawSkeleton(lm);
-    updateAngleReadouts(angles);
-    updateROM(angles);
+//     // Ghost shows what to do next
+//     if(showGhost){
+//       const gk=phase==='down'||phase==='hold'?'down':(phase==='up'?'up':(repPhase==='up'?'down':'up'));
+//       drawGhost(lm,gk);
+//     }
+//     drawSkeleton(lm);
+//     updateAngleReadouts(angles);
+//     updateROM(angles);
 
-    if(inFrameReady){
-      if(ex.type==='rep'){holdRing.classList.remove('visible');processReps(phase);}
-      else processHold(phase);
-    }
-  } else {
-    if(bodyDetected){bodyDetected=false;detectBadge.classList.remove('ok');detectBadge.classList.add('warn');detectBadge.textContent='No body detected';}
-    // Reset frame check if body lost
-    if(inFrameReady){
-      inFrameReady=false;frameHoldStart=null;
-      document.getElementById('frameCheck').classList.remove('hidden');
-      buildFrameJoints();
-    }
-    holdStart=null;holdRing.classList.remove('visible');
-    romFill.style.height='0%';romPct.textContent='—';
-    updateFrameCheck(null);
-  }
-  requestAnimationFrame(detect);
-}
+//     if(inFrameReady){
+//       if(ex.type==='rep'){holdRing.classList.remove('visible');processReps(phase);}
+//       else processHold(phase);
+//     }
+//   } else {
+//     if(bodyDetected){bodyDetected=false;detectBadge.classList.remove('ok');detectBadge.classList.add('warn');detectBadge.textContent='No body detected';}
+//     // Reset frame check if body lost
+//     if(inFrameReady){
+//       inFrameReady=false;frameHoldStart=null;
+//       document.getElementById('frameCheck').classList.remove('hidden');
+//       buildFrameJoints();
+//     }
+//     holdStart=null;holdRing.classList.remove('visible');
+//     romFill.style.height='0%';romPct.textContent='—';
+//     updateFrameCheck(null);
+//   }
+//   requestAnimationFrame(detect);
+// }
 
-// ══════════════════════════════════════
-// CAMERA + MEDIAPIPE INIT
-// ══════════════════════════════════════
-window.startCamera=async function(){
-  if(running)return;
-  document.getElementById('camPlaceholder').style.display='none';
-  const sp=document.getElementById('loadingSpinner');sp.style.display='flex';
-  try{
-    const stream=await navigator.mediaDevices.getUserMedia({video:{width:1280,height:720}});
-    video.srcObject=stream;await new Promise(r=>video.onloadedmetadata=r);
-    video.play();video.classList.add('visible');
-    document.getElementById('loadingMsg').textContent='Loading pose model…';
-    const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
-    poseLandmarker=await PoseLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',delegate:'GPU'},runningMode:'VIDEO',numPoses:1});
-    sp.style.display='none';
-    detectBadge.classList.add('visible');
-    document.getElementById('statusDot').classList.add('live');
-    document.getElementById('statusText').textContent='live';
-    running=true;detect();
-  }catch(e){
-    document.getElementById('loadingSpinner').style.display='none';
-    document.getElementById('camPlaceholder').style.display='flex';
-    document.getElementById('camPlaceholder').querySelector('div').textContent='Camera error: '+e.message;
-  }
-};
+// // ══════════════════════════════════════
+// // CAMERA + MEDIAPIPE INIT
+// // ══════════════════════════════════════
+// window.startCamera=async function(){
+//   if(running)return;
+//   document.getElementById('camPlaceholder').style.display='none';
+//   const sp=document.getElementById('loadingSpinner');sp.style.display='flex';
+//   try{
+//     const stream=await navigator.mediaDevices.getUserMedia({video:{width:1280,height:720}});
+//     video.srcObject=stream;await new Promise(r=>video.onloadedmetadata=r);
+//     video.play();video.classList.add('visible');
+//     document.getElementById('loadingMsg').textContent='Loading pose model…';
+//     const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+//     poseLandmarker=await PoseLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',delegate:'GPU'},runningMode:'VIDEO',numPoses:1});
+//     sp.style.display='none';
+//     detectBadge.classList.add('visible');
+//     document.getElementById('statusDot').classList.add('live');
+//     document.getElementById('statusText').textContent='live';
+//     running=true;detect();
+//   }catch(e){
+//     document.getElementById('loadingSpinner').style.display='none';
+//     document.getElementById('camPlaceholder').style.display='flex';
+//     document.getElementById('camPlaceholder').querySelector('div').textContent='Camera error: '+e.message;
+//   }
+// };
 
-window.toggleGhost=function(){
-  showGhost=!showGhost;
-  const btn=document.getElementById('ghostBtn');btn.textContent='👻 Ghost: '+(showGhost?'ON':'OFF');btn.classList.toggle('on',showGhost);
-};
+// window.toggleGhost=function(){
+//   showGhost=!showGhost;
+//   const btn=document.getElementById('ghostBtn');btn.textContent='👻 Ghost: '+(showGhost?'ON':'OFF');btn.classList.toggle('on',showGhost);
+// };
 
-window.resetStats=function(full){
-  repCount=0;repPhase='up';holdStart=null;if(full)sessionLog=[];
-  repCountEl.textContent='0';progFill.style.width='0%';
-  holdArc.style.strokeDashoffset=ARC;holdTimerEl.textContent='0s';holdRing.classList.remove('visible');
-  romFill.style.height='0%';romPct.textContent='—';renderLog();
-  // reset frame check
-  inFrameReady=false;frameHoldStart=null;
-  const fc=document.getElementById('frameCheck');fc.classList.remove('hidden');
-};
+// window.resetStats=function(full){
+//   repCount=0;repPhase='up';holdStart=null;if(full)sessionLog=[];
+//   repCountEl.textContent='0';progFill.style.width='0%';
+//   holdArc.style.strokeDashoffset=ARC;holdTimerEl.textContent='0s';holdRing.classList.remove('visible');
+//   romFill.style.height='0%';romPct.textContent='—';renderLog();
+//   // reset frame check
+//   inFrameReady=false;frameHoldStart=null;
+//   const fc=document.getElementById('frameCheck');fc.classList.remove('hidden');
+// };
 </script>
 </body>
 </html>

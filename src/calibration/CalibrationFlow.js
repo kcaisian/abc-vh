@@ -120,10 +120,17 @@ export class CalibrationFlow {
 
   /** User taps "Skip this movement" */
   skipStep() {
-    if (this._phase !== 'countdown' && this._phase !== 'hold') return
-    if (this._capture.isCapturing) this._capture.stop()
-    this._recordCurrentStep(true)
-    this._enterRest()
+    if (this._phase === 'countdown' || this._phase === 'hold') {
+      if (this._capture.isCapturing) this._capture.stop()
+      this._recordCurrentStep(true)
+      this._enterRest()
+      return
+    }
+
+    if (this._phase === 'rest') {
+      this._advance()
+      return
+    }
   }
 
   /** Restart from the beginning */
