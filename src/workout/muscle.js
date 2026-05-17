@@ -38,6 +38,7 @@ const EXERCISES_BY_PART = {
       desc:"Standard push-up for elbow, chest, and shoulder strength. Go sideways to camera for best tracking.",
       steps:["Turn sideways to the camera","Start in plank or wall push-up position","Lower chest toward floor (elbows bend)","Push back up to start","Repeat"] },
   ],
+
   wrist: [
     { id:"wrist_flex", name:"Wrist Flexion Stretch", icon:"🤚", tag:"hold·5s", target:6,  holdTarget:5,    type:"hold",
       desc:"Stretch the wrist by bending it gently downward. Relieves tension from typing or gripping.",
@@ -46,11 +47,7 @@ const EXERCISES_BY_PART = {
       desc:"Curl and uncurl the wrist to strengthen forearm flexors. Can be done with or without light weight.",
       steps:["Rest forearm on a surface, palm up","Let hand hang off the edge","Curl wrist upward (flex)","Lower slowly back down","Repeat"] },
   ],
-  back: [
-    { id:"cat_cow", name:"Cat-Cow Stretch", icon:"🐄", tag:"reps", target:10, holdTarget:null, type:"rep",
-      desc:"Alternately arch and round the spine. A foundational mobility exercise for back recovery.",
-      steps:["Turn sideways to the camera","Get on hands and knees (or sit forward)","Arch back downward (cow)","Round back upward (cat)","Move slowly and breathe"] },
-  ],
+
   knee: [
     { id:"squat",      name:"Sit-to-Stand", icon:"🪑", tag:"reps", target:10, holdTarget:null, type:"rep",
       desc:"Rise from a seated position to standing and lower back down. The most functional knee rehab exercise.",
@@ -59,11 +56,7 @@ const EXERCISES_BY_PART = {
       desc:"Lift one knee toward the hip while standing. Builds hip flexor strength and knee control.",
       steps:["Stand facing the camera","Hold something stable if needed","Lift one knee up toward hip height","Lower slowly back to floor","Alternate sides"] },
   ],
-  foot: [
-    { id:"toe_curls", name:"Toe Curls", icon:"🦶", tag:"reps", target:15, holdTarget:null, type:"rep",
-      desc:"Curl and release toes to strengthen intrinsic foot muscles.",
-      steps:["Sit in a chair facing camera","Place feet flat on the floor","Curl all toes downward (grip)","Release and spread toes wide","Repeat slowly"] },
-  ],
+  
   legs: [
     { id:"squat2",      name:"Assisted Squat", icon:"🏋️", tag:"reps", target:10, holdTarget:null, type:"rep",
       desc:"Lower into a squat with support as needed. Builds leg strength for functional movement.",
@@ -71,11 +64,6 @@ const EXERCISES_BY_PART = {
     { id:"knee_raise2", name:"Leg Raises",     icon:"🦵", tag:"reps", target:12, holdTarget:null, type:"rep",
       desc:"Alternate knee lifts to build hip flexor and leg strength.",
       steps:["Stand facing the camera","Lift alternate knees to hip height","Keep a steady rhythm","Hold something for balance if needed"] },
-  ],
-  balance: [
-    { id:"t_pose_bal", name:"T-Pose Balance Hold", icon:"✈️", tag:"hold·5s", target:5, holdTarget:5, type:"hold",
-      desc:"Hold arms out and maintain balance. Challenges proprioception and postural control.",
-      steps:["Stand facing the camera","Raise both arms straight out to sides","Optionally lift one foot slightly","Hold for 5 seconds","Rest and repeat"] },
   ],
 }
 for (const p of BODY_PARTS) { if (!EXERCISES_BY_PART[p.id]) EXERCISES_BY_PART[p.id] = [] }
@@ -117,64 +105,11 @@ function selectPart(id, btn) {
 }
 
 window.goToExercises = function() {
+  // If no part selected, do nothing (preserve existing guard)
   if (!selectedPart) return
-  buildExerciseList()
-  showScreen('screen-exercises')
-}
 
-window.goBack = function(screen) {
-  if (screen === 1) showScreen('screen-body')
-}
-
-// ── SCREEN 2: EXERCISE LIST ───────────────────────────────────────────────────
-function buildExerciseList() {
-  const part = BODY_PARTS.find(p => p.id === selectedPart)
-  document.getElementById('exListTitle').textContent = part.icon + ' ' + part.name
-  document.getElementById('exListSub').textContent = 'Select one to see details & start'
-
-  const scroll = document.getElementById('exListScroll')
-  scroll.innerHTML = ''
-  const exList = EXERCISES_BY_PART[selectedPart]
-
-  if (!exList || !exList.length) {
-    scroll.innerHTML = `<div style="color:var(--muted);font-size:12px;padding:16px;line-height:1.7">
-      Camera tracking isn't available for <strong>${part.name}</strong> yet.<br><br>
-      Try <strong>Shoulder</strong>, <strong>Knee</strong>, <strong>Elbow</strong> or <strong>Legs</strong>.
-    </div>`
-    return
-  }
-
-  for (const ex of exList) {
-    const item = document.createElement('div')
-    item.className = 'ex-item'
-    item.dataset.id = ex.id
-    item.innerHTML = `
-      <div class="ex-icon">${ex.icon}</div>
-      <div class="ex-info">
-        <div class="ex-name">${ex.name}</div>
-        <div class="ex-meta">${ex.tag} · ${ex.target} ${ex.type === 'hold' ? 'holds' : 'reps'}</div>
-      </div>
-      <span class="ex-badge">${ex.tag}</span>
-      <div class="ex-check"></div>`
-    item.onclick = () => selectExercise(ex, item)
-    scroll.appendChild(item)
-  }
-}
-
-function selectExercise(ex, item) {
-  selectedExercise = ex
-  document.querySelectorAll('.ex-item').forEach(i => i.classList.remove('selected'))
-  item.classList.add('selected')
-  item.querySelector('.ex-check').textContent = '✓'
-
-  document.getElementById('exDetailPlaceholder').style.display = 'none'
-  document.getElementById('exDetailCard').classList.add('show')
-  document.getElementById('exDetailName').textContent = ex.icon + ' ' + ex.name
-  document.getElementById('exDetailDesc').textContent = ex.desc
-  document.getElementById('exDetailMeta').innerHTML =
-    `<div class="meta-chip">Type: <span>${ex.type === 'hold' ? 'Hold' : 'Reps'}</span></div>` +
-    `<div class="meta-chip">Target: <span>${ex.target} ${ex.type === 'hold' ? 'holds' : 'reps'}</span></div>` +
-    (ex.holdTarget ? `<div class="meta-chip">Hold: <span>${ex.holdTarget}s</span></div>` : '')
-  document.getElementById('exDetailSteps').innerHTML =
-    ex.steps.map((s, i) => `<div class="how-to-step"><div class="step-num">${i + 1}</div><div class="step-text">${s}</div></div>`).join('')
+  // Redirect to the main workout page. If you later want to pass
+  // the selected part/exercise to the workout page, you can append
+  // a query string or hash (e.g. `main.html?part=${selectedPart}`).
+  window.location.href = 'main.html'
 }
