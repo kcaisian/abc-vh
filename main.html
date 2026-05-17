@@ -25,7 +25,7 @@
   body { background: var(--bg); color: var(--text); font-family: var(--mono); min-height: 100vh; display: flex; flex-direction: column; }
 
   header { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px; border-bottom: 1px solid var(--border); background: var(--surface); }
-  .logo { font-family: var(--serif); font-weight: 600; font-size: 22px; letter-spacing: -0.5px; color: var(--accent); }
+  .logo { font-family: var(--mono); font-weight: 600; font-size: 22px; letter-spacing: -0.5px; color: var(--accent); }
   .logo span { color: var(--text); font-style: italic; font-weight: 300; }
   .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; margin-right: 8px; transition: background 0.3s; }
   .status-dot.live { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
@@ -129,7 +129,12 @@
 <body>
 
 <header>
-  <div class="logo">ABC</div>
+  <div class="logo">
+    <a href="index.html#home" class="logo" style="text-decoration:none">
+    <img src="/src/assets/logo.png" style="height:28px;width:auto;" alt="logo" />
+    ABC
+  </a></div>
+
   <div class="header-status">
     <span class="status-dot" id="statusDot"></span>
     <span id="statusText">camera off</span>
