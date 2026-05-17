@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ABC</title>
+  <script type="module" crossorigin src="/assets/main-DaY1p6hH.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/main-CxLp6WGu.js">
+  <link rel="stylesheet" crossorigin href="/assets/main-JNtCaBBq.css">
+</head>
+<body>
+
+<header>
+  <a href="index.html#home" class="logo" style="text-decoration:none">ABC</a>
+  <div class="header-status" style="display:flex;align-items:center;gap:12px;font-size:14px;color:var(--muted)">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">camera off</span>
+    <span id="profileBadge" style="display:none;font-size:12px;"></span>
+    <button class="ghost-toggle-btn active" id="ghostToggleButton" type="button">Silhouette: On</button>
+  </div>
+</header>
+
+<div class="app" style="display:flex;flex:1;overflow:hidden;height:calc(100vh - 61px)">
+  <div id="sidebarContainer"></div>
+  <script>
+    async function loadSidebar() {
+      try {
+        const response = await fetch("sidebar.html");
+        const html = await response.text();
+        const template = document.createElement("template");
+        template.innerHTML = html;
+        const style = template.content.querySelector("style");
+        if (style) document.head.appendChild(style);
+        const aside = template.content.querySelector("aside");
+        if (aside) document.getElementById("sidebarContainer").appendChild(aside);
+      } catch (e) {}
+    }
+    loadSidebar();
+  </script>
+
+  <div class="camera-zone">
+    <video id="video" playsinline autoplay muted></video>
+    <canvas id="canvas"></canvas>
+    <canvas id="ghostCanvas"></canvas>
+
+    <div class="camera-placeholder" id="placeholder">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <rect x="2" y="10" width="44" height="32" rx="6" stroke="#7a5f4f" stroke-width="2"/>
+        <circle cx="24" cy="26" r="9" stroke="#7a5f4f" stroke-width="2"/>
+        <circle cx="24" cy="26" r="4" fill="#7a5f4f"/>
+        <path d="M16 10V8a3 3 0 013-3h10a3 3 0 013 3v2" stroke="#7a5f4f" stroke-width="2"/>
+      </svg>
+      <div id="placeholderMsg">Allow camera access to begin</div>
+      <button class="start-btn" onclick="startCamera()">Start Camera</button>
+    </div>
+
+    <div class="loading-spinner" id="loadingSpinner" style="display:none">
+      <div class="spinner"></div>
+      <span id="loadingMsg">Loading MediaPipe…</span>
+    </div>
+
+    <div class="feedback-overlay" style="position:absolute;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10;">
+      <div class="detection-badge" id="detectionBadge">No body detected</div>
+    </div>
+
+    <div class="pose-match-bar" id="poseMatchBar">
+      <span id="poseMatchLabel">Match pose</span>
+      <div class="pose-match-track"><div class="pose-match-fill" id="poseMatchFill"></div></div>
+      <span id="poseMatchPct">0%</span>
+    </div>
+
+    <div class="phase-flash" id="phaseFlash"></div>
+    <div class="ghost-label" id="ghostLabel">↓ Match the pose</div>
+    <div class="step-prompt" id="stepPrompt"></div>
+    <div class="parts-warning" id="partsWarning"></div>
+
+    <div class="hold-ring-container" id="holdRingContainer">
+      <svg class="hold-ring-svg" width="120" height="120" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="34" fill="none" stroke="#3d2a1e" stroke-width="8"/>
+        <circle id="holdArc" cx="40" cy="40" r="34" fill="none" stroke="#6ee7a0" stroke-width="8"
+          stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"/>
+      </svg>
+      <div class="hold-ring-text" id="holdTimer">0s</div>
+    </div>
+  </div>
+
+  <aside class="stats-panel">
+    <div class="stat-card">
+      <div class="stat-label" id="statModeLabel">Reps</div>
+      <div class="stat-value" id="repCount">0</div>
+      <div class="stat-sub" id="statSub">of 10 target</div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+
+    <div class="rom-card">
+      <div class="stat-label">Range of Motion</div>
+      <div class="rom-bar-wrap" style="display:flex;gap:10px;align-items:stretch;height:160px;">
+        <div class="rom-bar-track" style="width:26px;overflow:visible">
+          <div class="rom-bar-fill" id="romFill"></div>
+          <div class="rom-target-line" id="romTargetLine" style="bottom:75%">
+            <span class="rom-target-label">target</span>
+          </div>
+        </div>
+        <div class="rom-labels"><span>Full</span><span></span><span></span><span></span><span>Start</span></div>
+      </div>
+      <div class="rom-pct" id="romPct"></div>
+      <div class="rom-pct-label" id="romPctLabel"></div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Joint Angles</div>
+      <div class="angle-row"><span>L Elbow</span>   <span class="angle-val" id="aLElbow">—°</span></div>
+      <div class="angle-row"><span>R Elbow</span>   <span class="angle-val" id="aRElbow">—°</span></div>
+      <div class="angle-row"><span>L Shoulder</span><span class="angle-val" id="aLShoulder">—°</span></div>
+      <div class="angle-row"><span>R Shoulder</span><span class="angle-val" id="aRShoulder">—°</span></div>
+      <div class="angle-row"><span>L Knee</span>    <span class="angle-val" id="aLKnee">—°</span></div>
+      <div class="angle-row"><span>R Knee</span>    <span class="angle-val" id="aRKnee">—°</span></div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Session Log</div>
+      <div class="log-entries" id="logEntries">
+        <div class="log-entry" style="color:var(--muted);font-size:13px">No reps yet</div>
+      </div>
+    </div>
+
+    <button class="reset-btn" onclick="resetStats()">↺ Reset Session</button>
+  </aside>
+</div>
+
+</body>
+</html>
