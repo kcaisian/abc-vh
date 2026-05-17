@@ -174,6 +174,29 @@ const CSS = `
     flex-direction: column;
     justify-content: space-between;
   }
+  .cal-card-bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .cal-legend {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .cal-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cal-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
   .cal-card-footer {
     display: flex;
     flex-direction: row;
@@ -309,9 +332,19 @@ export function mountCalibrationScreen(container) {
           <div class="cal-step-label" id="cal-step-label">Initialising camera…</div>
           <div class="cal-instruction" id="cal-instruction">Please allow camera access to continue.</div>
         </div>
-        <div class="cal-card-footer">
-          <button class="btn-ghost" id="cal-skip-btn">Skip this movement</button>
-          <div class="cal-angle-display" id="cal-angle-display">—</div>
+        <div class="cal-card-bottom">
+          <div class="cal-legend">
+            <span class="cal-legend-item">
+              <span class="cal-legend-dot" style="background:#4f8ef7;"></span>detecting
+            </span>
+            <span class="cal-legend-item">
+              <span class="cal-legend-dot" style="background:#00c9a7;"></span>capturing
+            </span>
+          </div>
+          <div class="cal-card-footer">
+            <button class="btn-ghost" id="cal-skip-btn">Skip this movement</button>
+            <div class="cal-angle-display" id="cal-angle-display">—</div>
+          </div>
         </div>
       </div>
     </div>
