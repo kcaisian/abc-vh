@@ -134,22 +134,30 @@ export function drawAngleArc(ctx, landmarks, idxA, idxVertex, idxB, angle, opts 
 
   const v = landmarks[idxVertex]
   const a = landmarks[idxA]
-  if (!v || !a) return
+  const b = landmarks[idxB]
+  if (!v || !a || !b) return
 
   const vx = lx(v)
   const vy = ly(v)
 
-  // Direction of the A ray
   const ax = lx(a) - vx
   const ay = ly(a) - vy
+  const bx = lx(b) - vx
+  const by = ly(b) - vy
+
   const startAngle = Math.atan2(ay, ax)
   const spanAngle = (angle * Math.PI) / 180
+
+  // In canvas space (y increases downward), cross > 0 means B is clockwise from A.
+  // Sweep toward B so the arc always sits inside the joint angle.
+  const cross = ax * by - ay * bx
+  const anticlockwise = cross < 0
 
   const radius = opts.radius ?? 32
   const color = opts.color ?? '#00e5ff'
 
   ctx.beginPath()
-  ctx.arc(vx, vy, radius, startAngle, startAngle + spanAngle)
+  ctx.arc(vx, vy, radius, startAngle, startAngle + (anticlockwise ? -spanAngle : spanAngle), anticlockwise)
   ctx.strokeStyle = color
   ctx.lineWidth = 30
   ctx.stroke()
