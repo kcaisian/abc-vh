@@ -96,8 +96,12 @@ export function drawSkeleton(ctx, landmarks, opts = {}) {
     ctx.stroke()
   }
 
-  // Draw dots
+  // Face landmark indices from MediaPipe Pose (nose, eyes, ears)
+  const FACE_LANDMARKS = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+
+  // Draw dots for body landmarks only
   for (let i = 0; i < landmarks.length; i++) {
+    if (FACE_LANDMARKS.has(i)) continue
     const lm = landmarks[i]
     if (!lm || lm.visibility < 0.4) continue
 
@@ -147,11 +151,11 @@ export function drawAngleArc(ctx, landmarks, idxA, idxVertex, idxB, angle, opts 
   ctx.beginPath()
   ctx.arc(vx, vy, radius, startAngle, startAngle + spanAngle)
   ctx.strokeStyle = color
-  ctx.lineWidth = 3
+  ctx.lineWidth = 30
   ctx.stroke()
 
   // Angle label
-  ctx.font = 'bold 14px monospace'
+  ctx.font = 'bold 44px monospace'
   ctx.fillStyle = color
   ctx.fillText(
     `${Math.round(angle)}°`,

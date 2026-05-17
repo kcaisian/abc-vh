@@ -21,22 +21,60 @@ import { BODY_PARTS } from '../calibration/calibrationSteps.js'
 const CSS = `
   .cal-screen {
     display: grid;
-    grid-template-rows: auto 1fr auto;
+    grid-template-columns: 1fr minmax(320px, 360px);
+    grid-template-rows: auto 1fr;
     height: 100vh;
     background: var(--bg);
     overflow: hidden;
+  }
+  .cal-screen.complete {
+    grid-template-columns: 1fr;
   }
   .cal-header {
     padding: 16px 20px 8px;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    grid-column: 1 / -1;
   }
-  .cal-header h2 {
+  .cal-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+  }
+  .cal-progress-row h2 {
+    margin: 0;
     font-size: 1rem;
     font-weight: 500;
     color: var(--text-muted);
     letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .progress-track {
+    flex: 1;
+    min-width: 0;
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .cal-home-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 54px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+  }
+  .cal-home-link:hover {
+    background: rgba(255,255,255,0.12);
   }
   .progress-track {
     height: 6px;
@@ -53,15 +91,18 @@ const CSS = `
   .cal-video-wrap {
     position: relative;
     width: 100%;
-    height: 100%;
+    aspect-ratio: 4 / 3;
     overflow: hidden;
     background: #000;
+    min-height: 0;
+    margin: auto;
+    align-self: start;
   }
   .cal-video-wrap video {
     position: absolute;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     transform: scaleX(-1); /* mirror for natural feel */
   }
   .cal-canvas {
@@ -71,6 +112,7 @@ const CSS = `
     height: 100%;
     pointer-events: none;
   }
+
   /* Phase overlay */
   .phase-overlay {
     position: absolute;
@@ -84,32 +126,69 @@ const CSS = `
     font-size: 5rem;
     font-weight: 700;
     color: var(--warn);
-    text-shadow: 0 0 30px rgba(247,201,79,0.5);
+    text-shadow: 2px 2px rgba(157, 126, 43, 0.75);
     transition: transform 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 12px;
+  }
+  .countdown-badge.waiting {
+    font-size: 2.5rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--warn);
+    text-shadow: 2px 2px rgba(157, 126, 43, 0.75);
+    align-self: flex-start;
+    margin-top: 24px;
   }
   .hold-ring-wrap {
     position: absolute;
     top: 16px;
     right: 16px;
   }
+
   /* Instruction card */
   .cal-card {
     background: var(--surface);
-    border-top: 1px solid var(--surface2);
+    border-left: 1px solid var(--surface2);
     padding: 20px;
     display: flex;
     flex-direction: column;
     gap: 14px;
+    grid-row: 2;
+    grid-column: 2;
+    height: 100%;
+    overflow-y: auto;
+    min-height: 0;
+  }
+  .cal-screen.complete .cal-card {
+    grid-column: 1 / -1;
+    border-left: none;
+    border-top: 1px solid var(--surface2);
+  }
+  .cal-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .cal-card-footer {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    width: 100%;
+    align-items: center;
   }
   .cal-step-label {
-    font-size: 0.75rem;
+    font-size: 1.5rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--accent);
   }
   .cal-instruction {
-    font-size: 1.1rem;
+    font-size: clamp(3rem, 3vw, 5rem);
     line-height: 1.5;
     color: var(--text);
   }
@@ -117,15 +196,39 @@ const CSS = `
     display: flex;
     gap: 12px;
     align-items: center;
+    flex: 1;
+  }
+  .cal-card-footer .btn-ghost {
+    flex: 1;
+    width: auto;
   }
   .cal-angle-display {
-    margin-left: auto;
-    font-family: var(--font-mono);
-    font-size: 1.4rem;
-    font-weight: 700;
+    flex-shrink: 0;
+    min-width: 120px;
+    padding: 18px 22px;
+    border-radius: var(--radius);
     color: var(--accent2);
-    min-width: 70px;
+    font-size: 2.75rem;
+    font-family: var(--font-mono);
+    font-weight: 700;
     text-align: right;
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--text-muted);
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: 1rem;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn-ghost:hover {
+    opacity: 0.88;
+  }
+  .btn-ghost:active {
+    transform: scale(0.97);
   }
   /* Result flash */
   .result-flash {
@@ -179,9 +282,12 @@ export function mountCalibrationScreen(container) {
     <style>${CSS}</style>
     <div class="cal-screen">
       <div class="cal-header">
-        <h2 id="cal-step-counter">Setting up…</h2>
-        <div class="progress-track">
-          <div class="progress-fill" id="cal-progress" style="width:0%"></div>
+        <div class="cal-progress-row">
+          <a href="#home" class="cal-home-link" title="Back to home">ABC</a>
+          <h2 id="cal-step-counter">Setting up…</h2>
+          <div class="progress-track">
+            <div class="progress-fill" id="cal-progress" style="width:0%"></div>
+          </div>
         </div>
       </div>
 
@@ -193,10 +299,12 @@ export function mountCalibrationScreen(container) {
       </div>
 
       <div class="cal-card" id="cal-card">
-        <div class="cal-step-label" id="cal-step-label">Initialising camera…</div>
-        <div class="cal-instruction" id="cal-instruction">Please allow camera access to continue.</div>
-        <div class="cal-actions">
-          <button class="btn-ghost" id="cal-skip-btn" style="display:none">Skip this movement</button>
+        <div>
+          <div class="cal-step-label" id="cal-step-label">Initialising camera…</div>
+          <div class="cal-instruction" id="cal-instruction">Please allow camera access to continue.</div>
+        </div>
+        <div class="cal-card-footer">
+          <button class="btn-ghost" id="cal-skip-btn">Skip this movement</button>
           <div class="cal-angle-display" id="cal-angle-display">—</div>
         </div>
       </div>
@@ -207,6 +315,7 @@ export function mountCalibrationScreen(container) {
   // ── Element refs ─────────────────────────────────────────────────────────
   const videoEl     = root.querySelector('#cal-video')
   const canvasEl    = root.querySelector('#cal-canvas')
+  const videoWrap   = root.querySelector('#cal-video-wrap')
   const overlay     = root.querySelector('#cal-overlay')
   const holdRing    = root.querySelector('#cal-hold-ring')
   const progressBar = root.querySelector('#cal-progress')
@@ -217,11 +326,21 @@ export function mountCalibrationScreen(container) {
   const angleDisplay= root.querySelector('#cal-angle-display')
   const ctx         = canvasEl.getContext('2d')
 
+  videoEl.addEventListener('loadedmetadata', resizeCanvas)
+
   // ── Resize canvas to match video ─────────────────────────────────────────
   function resizeCanvas() {
-    const wrap = root.querySelector('#cal-video-wrap')
-    canvasEl.width  = wrap.clientWidth
-    canvasEl.height = wrap.clientHeight
+    const aspectRatio = videoEl.videoWidth && videoEl.videoHeight
+      ? videoEl.videoWidth / videoEl.videoHeight
+      : 4 / 3
+
+    if (videoEl.videoWidth && videoEl.videoHeight) {
+      videoWrap.style.aspectRatio = `${videoEl.videoWidth} / ${videoEl.videoHeight}`
+    }
+
+    const width = videoWrap.clientWidth
+    canvasEl.width = width
+    canvasEl.height = Math.round(width / aspectRatio)
   }
   window.addEventListener('resize', resizeCanvas)
   resizeCanvas()
@@ -309,17 +428,24 @@ export function mountCalibrationScreen(container) {
     if (phase === 'countdown') {
       stepLabel.textContent = step?.bodyPart?.toUpperCase() ?? ''
       instruction.textContent = step?.instruction ?? ''
-      skipBtn.style.display = step?.optional ? 'inline-block' : 'inline-block'
+      skipBtn.style.visibility = 'visible'
+      skipBtn.style.display = 'inline-block'
 
-      // Big countdown number
       const badge = document.createElement('div')
       badge.className = 'countdown-badge'
-      badge.textContent = countdownSeconds
+      if (!state.landmarksReady) {
+        badge.classList.add('waiting')
+        badge.textContent = 'Waiting for user to get into position...'
+      } else {
+        badge.textContent = countdownSeconds
+      }
       overlay.appendChild(badge)
 
     } else if (phase === 'hold') {
       stepLabel.textContent = `Measuring… hold still`
       instruction.textContent = step?.instruction ?? ''
+      skipBtn.style.visibility = 'visible'
+      skipBtn.style.display = 'inline-block'
 
       // SVG ring progress
       holdRing.innerHTML = buildRingSVG(phaseProgress, '#00c9a7')
@@ -336,7 +462,8 @@ export function mountCalibrationScreen(container) {
       }
       stepLabel.textContent = 'Rest…'
       instruction.textContent = 'Take a breath before the next movement.'
-      skipBtn.style.display = 'none'
+      skipBtn.style.visibility = 'hidden'
+      skipBtn.style.display = 'inline-block'
     }
   }
 
@@ -350,7 +477,7 @@ export function mountCalibrationScreen(container) {
     // Render results screen
     root.innerHTML = `
       <style>${CSS}</style>
-      <div class="cal-screen" style="grid-template-rows:1fr auto;">
+      <div class="cal-screen complete" style="grid-template-columns:1fr; grid-template-rows:1fr auto;">
         <div class="done-screen">
           <h2>Calibration complete 🎉</h2>
           <p style="color:var(--text-muted);line-height:1.5">

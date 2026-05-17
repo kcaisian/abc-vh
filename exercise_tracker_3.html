@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ABC — Adaptive Exercise Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #2d1f16;
+    --surface: #433528;
+    --surface2: #574334;
+    --border: #7a5f4f;
+    --accent: #c9a77b;
+    --accent2: #d6b992;
+    --accent3: #a67a53;
+    --text: #f4ede3;
+    --muted: #beac9c;
+    --radius: 12px;
+    --mono: 'DM Mono', monospace;
+    --serif: 'Fraunces', serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--mono); min-height: 100vh; display: flex; flex-direction: column; }
+
+  header { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .logo { font-family: var(--serif); font-weight: 600; font-size: 22px; letter-spacing: -0.5px; color: var(--accent); }
+  .logo span { color: var(--text); font-style: italic; font-weight: 300; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; margin-right: 8px; transition: background 0.3s; }
+  .status-dot.live { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .header-status { font-size: 12px; color: var(--muted); display: flex; align-items: center; }
+
+  .app { display: flex; flex: 1; overflow: hidden; height: calc(100vh - 61px); }
+
+  /* CAMERA */
+  .camera-zone { flex: 1; position: relative; background: #080a09; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); opacity: 0; transition: opacity 0.5s; }
+  #video.visible { opacity: 1; }
+  #canvas { position: absolute; inset: 0; width: 100%; height: 100%; transform: scaleX(-1); }
+
+  .camera-placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: var(--muted); font-size: 13px; }
+  .camera-placeholder svg { opacity: 0.3; }
+  .start-btn { background: var(--accent); color: #0d0f0e; border: none; border-radius: var(--radius); padding: 12px 28px; font-family: var(--mono); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; margin-top: 8px; }
+  .start-btn:hover { transform: scale(1.03); }
+
+  /* OVERLAY */
+  .feedback-overlay { position: absolute; top: 14px; left: 14px; right: 14px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; }
+  .detection-badge { background: rgba(13,15,14,0.85); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; font-size: 12px; color: var(--muted); display: none; }
+  .detection-badge.visible { display: block; }
+  .detection-badge.detected { border-color: var(--accent); color: var(--accent); }
+  .detection-badge.warn { border-color: var(--accent3); color: var(--accent3); }
+  .ghost-toggle { background: rgba(13,15,14,0.85); backdrop-filter: blur(8px); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; font-size: 11px; color: var(--muted); cursor: pointer; pointer-events: all; transition: all 0.15s; font-family: var(--mono); }
+  .ghost-toggle.on { border-color: var(--accent2); color: var(--accent2); }
+
+  /* STEP PROMPT — big center cue */
+  .step-prompt {
+    display: none;
+  }
+  .step-prompt.show { display: none; }
+  .step-prompt.good { display: none; }
+  .step-prompt.warn { display: none; }
+
+  /* BODY PARTS WARNING — bottom center banner */
+  .parts-warning {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(6px);
+    width: calc(100% - 48px); max-width: 1800px;
+    background: rgba(201,167,123,0.35); backdrop-filter: blur(8px);
+    border: 1px solid rgba(201,167,123,0.75); border-radius: 12px;
+    padding: 16px 30px; font-size: 35px; font-weight: 700; color: #433528;
+    pointer-events: none; opacity: 0; transition: opacity 0.18s, transform 0.18s;
+    white-space: normal; z-index: 11; text-align: center;
+    line-height: 1.2; max-height: 110px; overflow-wrap: anywhere; overflow: visible;
+  }
+  .parts-warning.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* HOLD RING */
+  .hold-ring-container { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: none; }
+  .hold-ring-container.visible { display: block; }
+  .hold-ring-svg { transform: rotate(-90deg); }
+  .hold-ring-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 500; color: var(--accent); font-family: var(--mono); }
+
+  /* LOADING */
+  .loading-spinner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(8,10,9,0.8); font-size: 13px; color: var(--muted); z-index: 10; }
+  .spinner { width: 36px; height: 36px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* STATS */
+  .stats-panel { width: 220px; min-width: 220px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; padding: 14px 13px; gap: 12px; overflow-y: auto; }
+  .stat-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px; display: flex; flex-direction: column; gap: 4px; }
+  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); }
+  .stat-value { font-size: 38px; font-family: var(--serif); font-weight: 600; color: var(--accent); line-height: 1; }
+  .stat-sub { font-size: 11px; color: var(--muted); }
+  .stat-value.pop { animation: popAnim 0.3s ease-out; }
+  @keyframes popAnim { 0%{transform:scale(1.4)} 100%{transform:scale(1)} }
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; width: 0%; transition: width 0.3s; }
+
+  /* ROM BAR */
+  .rom-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px; display: flex; flex-direction: column; gap: 10px; }
+  .rom-bar-wrap { display: flex; gap: 10px; align-items: stretch; height: 160px; }
+  .rom-bar-track { width: 26px; background: var(--border); border-radius: 13px; position: relative; overflow: visible; flex-shrink: 0; }
+  .rom-bar-fill { position: absolute; bottom: 0; left: 0; right: 0; background: var(--accent3); border-radius: 13px; height: 0%; transition: height 0.1s, background 0.2s; }
+  .rom-bar-fill.partial { background: var(--accent2); }
+  .rom-bar-fill.deep { background: var(--accent); }
+  .rom-target-line { position: absolute; left: -6px; right: -6px; height: 2px; background: rgba(201,167,123,0.55); pointer-events: none; }
+  .rom-target-label { position: absolute; left: 32px; font-size: 9px; color: rgba(201,167,123,0.6); transform: translateY(50%); white-space: nowrap; }
+  .rom-labels { display: flex; flex-direction: column; justify-content: space-between; font-size: 10px; color: var(--muted); padding: 0; flex: 1; }
+  .rom-pct { font-size: 20px; font-family: var(--serif); font-weight: 600; color: var(--accent); line-height: 1; }
+  .rom-pct-label { font-size: 10px; color: var(--muted); }
+
+  /* Angles */
+  .angle-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); padding: 3px 0; border-bottom: 1px solid var(--border); }
+  .angle-row:last-child { border-bottom: none; }
+  .angle-val { color: var(--text); font-weight: 500; }
+  .angle-val.active { color: var(--accent); }
+  .angle-val.missing { color: var(--accent3); }
+
+  /* Log */
+  .log-entries { display: flex; flex-direction: column; gap: 3px; max-height: 100px; overflow-y: auto; }
+  .log-entry { font-size: 11px; color: var(--muted); padding: 2px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+  .log-entry .log-time { color: var(--accent); }
+
+  .reset-btn { background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 8px; color: var(--muted); font-family: var(--mono); font-size: 12px; cursor: pointer; transition: all 0.15s; width: 100%; }
+  .reset-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ABC</div>
+  <div class="header-status">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">camera off</span>
+  </div>
+</header>
+
+<div class="app">
+
+    <div id="sidebarContainer"></div>
+  <script>
+    async function loadSidebar() {
+      try {
+        const response = await fetch("sidebar.html");
+        const html = await response.text();
+        const template = document.createElement("template");
+        template.innerHTML = html;
+        const style = template.content.querySelector("style");
+        if (style) document.head.appendChild(style);
+        const aside = template.content.querySelector("aside");
+        if (aside) document.getElementById("sidebarContainer").appendChild(aside);
+      } catch (error) {
+        console.error("Failed to load sidebar:", error);
+      }
+    }
+    loadSidebar();
+  </script>
+
+  <div class="camera-zone">
+    <video id="video" playsinline autoplay muted></video>
+    <canvas id="canvas"></canvas>
+
+    <div class="camera-placeholder" id="placeholder">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <rect x="2" y="10" width="44" height="32" rx="6" stroke="#7a8c7e" stroke-width="2"/>
+        <circle cx="24" cy="26" r="9" stroke="#7a8c7e" stroke-width="2"/>
+        <circle cx="24" cy="26" r="4" fill="#7a8c7e"/>
+        <path d="M16 10V8a3 3 0 013-3h10a3 3 0 013 3v2" stroke="#7a8c7e" stroke-width="2"/>
+      </svg>
+      <div id="placeholderMsg">Allow camera access to begin</div>
+      <button class="start-btn" onclick="startCamera()">Start Camera</button>
+    </div>
+
+    <div class="loading-spinner" id="loadingSpinner" style="display:none">
+      <div class="spinner"></div>
+      <span id="loadingMsg">Loading MediaPipe…</span>
+    </div>
+
+    <div class="feedback-overlay">
+      <div class="detection-badge" id="detectionBadge">No body detected</div>
+    </div>
+
+    <div class="step-prompt" id="stepPrompt"></div>
+    <div class="parts-warning" id="partsWarning"></div>
+
+    <div class="hold-ring-container" id="holdRingContainer">
+      <svg class="hold-ring-svg" width="80" height="80" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="34" fill="none" stroke="#2a312d" stroke-width="6"/>
+        <circle id="holdArc" cx="40" cy="40" r="34" fill="none" stroke="#5ef5a0" stroke-width="6"
+          stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"/>
+      </svg>
+      <div class="hold-ring-text" id="holdTimer">0s</div>
+    </div>
+  </div>
+
+  <aside class="stats-panel">
+    <div class="stat-card">
+      <div class="stat-label" id="statModeLabel">Reps</div>
+      <div class="stat-value" id="repCount">0</div>
+      <div class="stat-sub" id="statSub">of 10 target</div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+
+    <!-- ROM BAR -->
+    <div class="rom-card">
+      <div class="stat-label">Range of Motion</div>
+      <div class="rom-bar-wrap">
+        <div class="rom-bar-track" style="overflow:visible">
+          <div class="rom-bar-fill" id="romFill"></div>
+          <div class="rom-target-line" id="romTargetLine" style="bottom:75%">
+            <span class="rom-target-label">target</span>
+          </div>
+        </div>
+        <div class="rom-labels">
+          <span>Full</span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span>Start</span>
+        </div>
+      </div>
+      <div class="rom-pct" id="romPct">—</div>
+      <div class="rom-pct-label" id="romPctLabel">depth</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Joint Angles</div>
+      <div class="angle-row"><span>L Elbow</span><span class="angle-val" id="aLElbow">—°</span></div>
+      <div class="angle-row"><span>R Elbow</span><span class="angle-val" id="aRElbow">—°</span></div>
+      <div class="angle-row"><span>L Shoulder</span><span class="angle-val" id="aLShoulder">—°</span></div>
+      <div class="angle-row"><span>R Shoulder</span><span class="angle-val" id="aRShoulder">—°</span></div>
+      <div class="angle-row"><span>L Knee</span><span class="angle-val" id="aLKnee">—°</span></div>
+      <div class="angle-row"><span>R Knee</span><span class="angle-val" id="aRKnee">—°</span></div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">Session Log</div>
+      <div class="log-entries" id="logEntries">
+        <div class="log-entry" style="color:var(--muted);font-size:11px">No reps yet</div>
+      </div>
+    </div>
+
+    <button class="reset-btn" onclick="resetStats()">↺ Reset Session</button>
+  </aside>
+</div>
+
+<script type="module">
+import { PoseLandmarker, FilesetResolver }
+  from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+// ── Ghost pose joint indices ──
+const GC = [[0,1],[0,2],[1,3],[2,4],[3,5],[0,6],[1,7],[6,7],[6,8],[8,10],[7,9],[9,11]];
+
+const GP = {
+  pushup:{
+    up:  [{x:-.5,y:-2},{x:.5,y:-2},{x:-.5,y:-1},{x:.5,y:-1},{x:-.5,y:.1},{x:.5,y:.1},{x:-.3,y:.2},{x:.3,y:.2},{x:-.3,y:1},{x:.3,y:1},{x:-.3,y:2},{x:.3,y:2}],
+    down:[{x:-.5,y:-1.3},{x:.5,y:-1.3},{x:-.35,y:-.35},{x:.35,y:-.35},{x:-.5,y:.1},{x:.5,y:.1},{x:-.3,y:.2},{x:.3,y:.2},{x:-.3,y:1},{x:.3,y:1},{x:-.3,y:2},{x:.3,y:2}],
+  },
+  bicep_curl:{
+    up:  [{x:-.5,y:-2},{x:.5,y:-2},{x:-.6,y:-2.65},{x:.6,y:-2.65},{x:-.55,y:-3.3},{x:.55,y:-3.3},{x:-.3,y:0},{x:.3,y:0},{x:-.3,y:1},{x:.3,y:1},{x:-.3,y:2},{x:.3,y:2}],
+    down:[{x:-.5,y:-2},{x:.5,y:-2},{x:-.5,y:-1},{x:.5,y:-1},{x:-.5,y:.05},{x:.5,y:.05},{x:-.3,y:0},{x:.3,y:0},{x:-.3,y:1},{x:.3,y:1},{x:-.3,y:2},{x:.3,y:2}],
+  },
+  arm_raise:{
+    up:  [{x:-.5,y:-2},{x:.5,y:-2},{x:-1.15,y:-2},{x:1.15,y:-2},{x:-1.7,y:-2},{x:1.7,y:-2},{x:-.3,y:0},{x:.3,y:0},{x:-.3,y:1},{x:.3,y:1},{x:-.3,y:2},{x:.3,y:2}],
+    down:[{x:-.5,y:-2},{x:.5,y:-2},{x:-.5,y:-1},{x:.5,y:-1},{x:-.5,y:0},{x:.5,y:0},{x:-.3,y:0},{x:.3,y:0},{x:-.3,y:1},{x:.3,y:1},{x:-.3,y:2},{x:.3,y:2}],
+  },
+  shoulder_press:{
+    up:  [{x:-.5,y:-2},{x:.5,y:-2},{x:-.55,y:-3.1},{x:.55,y:-3.1},{x:-.55,y:-4.1},{x:.55,y:-4.1},{x:-.3,y:0},{x:.3,y:0},{x:-.3,y:1},{x:.3,y:1},{x:-.3,y:2},{x:.3,y:2}],
+    down:[{x:-.5,y:-2},{x:.5,y:-2},{x:-.85,y:-2},{x:.85,y:-2},{x:-.85,y:-1.1},{x:.85,y:-1.1},{x:-.3,y:0},{x:.3,y:0},{x:-.3,y:1},{x:.3,y:1},{x:-.3,y:2},{x:.3,y:2}],
+  },
+  chest_stretch:{
+    hold:[{x:-.5,y:-2},{x:.5,y:-2},{x:-1.15,y:-1.8},{x:1.15,y:-1.8},{x:-1.65,y:-1.4},{x:1.65,y:-1.4},{x:-.3,y:0},{x:.3,y:0},{x:-.3,y:1},{x:.3,y:1},{x:-.3,y:2},{x:.3,y:2}],
+    rest:[{x:-.5,y:-2},{x:.5,y:-2},{x:-.5,y:-1},{x:.5,y:-1},{x:-.5,y:0},{x:.5,y:0},{x:-.3,y:0},{x:.3,y:0},{x:-.3,y:1},{x:.3,y:1},{x:-.3,y:2},{x:.3,y:2}],
+  },
+  squat:{
+    up:  [{x:-.5,y:-2},{x:.5,y:-2},{x:-.5,y:-1},{x:.5,y:-1},{x:-.5,y:0},{x:.5,y:0},{x:-.3,y:0},{x:.3,y:0},{x:-.3,y:1.1},{x:.3,y:1.1},{x:-.3,y:2},{x:.3,y:2}],
+    down:[{x:-.5,y:-1.2},{x:.5,y:-1.2},{x:-.5,y:-.5},{x:.5,y:-.5},{x:-.5,y:.2},{x:.5,y:.2},{x:-.4,y:.5},{x:.4,y:.5},{x:-.55,y:1.5},{x:.55,y:1.5},{x:-.4,y:2.2},{x:.4,y:2.2}],
+  },
+  knee_raise:{
+    up:  [{x:-.5,y:-2},{x:.5,y:-2},{x:-.5,y:-1},{x:.5,y:-1},{x:-.5,y:0},{x:.5,y:0},{x:-.3,y:0},{x:.3,y:0},{x:-.5,y:.55},{x:.3,y:1.1},{x:-.5,y:.55},{x:.3,y:2}],
+    down:[{x:-.5,y:-2},{x:.5,y:-2},{x:-.5,y:-1},{x:.5,y:-1},{x:-.5,y:0},{x:.5,y:0},{x:-.3,y:0},{x:.3,y:0},{x:-.3,y:1.1},{x:.3,y:1.1},{x:-.3,y:2},{x:.3,y:2}],
+  },
+  calf_raise:{
+    hold:[{x:-.5,y:-2},{x:.5,y:-2},{x:-.5,y:-1},{x:.5,y:-1},{x:-.5,y:0},{x:.5,y:0},{x:-.3,y:0},{x:.3,y:0},{x:-.3,y:1.05},{x:.3,y:1.05},{x:-.25,y:1.88},{x:.25,y:1.88}],
+    rest:[{x:-.5,y:-2},{x:.5,y:-2},{x:-.5,y:-1},{x:.5,y:-1},{x:-.5,y:0},{x:.5,y:0},{x:-.3,y:0},{x:.3,y:0},{x:-.3,y:1.1},{x:.3,y:1.1},{x:-.3,y:2},{x:.3,y:2}],
+  },
+  t_pose:{
+    hold:[{x:-.5,y:-2},{x:.5,y:-2},{x:-1.2,y:-2},{x:1.2,y:-2},{x:-1.9,y:-2},{x:1.9,y:-2},{x:-.3,y:0},{x:.3,y:0},{x:-.3,y:1.1},{x:.3,y:1.1},{x:-.3,y:2},{x:.3,y:2}],
+    rest:[{x:-.5,y:-2},{x:.5,y:-2},{x:-.5,y:-1},{x:.5,y:-1},{x:-.5,y:0},{x:.5,y:0},{x:-.3,y:0},{x:.3,y:0},{x:-.3,y:1.1},{x:.3,y:1.1},{x:-.3,y:2},{x:.3,y:2}],
+  },
+};
+
+// ── LANDMARK INDEX MAP ──
+// Used by the visibility checker. Each entry names the landmark indices
+// that must be visible (visibility > threshold) for that joint group.
+const LM_GROUPS = {
+  // format: [label for user, [mediapipe landmark indices]]
+  LShoulderElbow: ["L shoulder & elbow",  [11, 13]],
+  RShoulderElbow: ["R shoulder & elbow",  [12, 14]],
+  LElbowWrist:    ["L elbow & wrist",     [13, 15]],
+  RElbowWrist:    ["R elbow & wrist",     [14, 16]],
+  LHipKnee:       ["L hip & knee",        [23, 25]],
+  RHipKnee:       ["R hip & knee",        [24, 26]],
+  LKneeAnkle:     ["L knee & ankle",      [25, 27]],
+  RKneeAnkle:     ["R knee & ankle",      [26, 28]],
+  LShoulder:      ["L shoulder",          [11]],
+  RShoulder:      ["R shoulder",          [12]],
+  LHip:           ["L hip",              [23]],
+  RHip:           ["R hip",              [24]],
+};
+
+// Each exercise declares which LM_GROUPS must ALL be visible to count a rep/hold.
+// Also carries a human-readable hint of WHERE the person should position themselves.
+const EXERCISES = {
+  pushup:{
+    name:"Push-Up", type:"rep", target:10,
+    joints:["LElbow","RElbow"],
+    romTop:160, romBottom:70, romTargetPct:78,
+    poses:GP.pushup,
+    // need shoulders, elbows, wrists visible (floor/plank view)
+    requiredGroups:["LShoulderElbow","RShoulderElbow","LElbowWrist","RElbowWrist","LHip","RHip"],
+    frameHint:"Show full upper body — shoulders, elbows, wrists & hips",
+    prompts:{down:"▼  Go Down", up:"▲  Push Up", good_down:"✓  Full Depth!", wait:"Get into push-up position"},
+    check(a){ const v=avgElbow(a); if(v===null)return{phase:null}; if(v>145)return{phase:"up"}; if(v<90)return{phase:"down"}; return{phase:"mid"}; },
+    romValue(a){ return avgElbow(a); }
+  },
+  bicep_curl:{
+    name:"Bicep Curls", type:"rep", target:12,
+    joints:["LElbow","RElbow"],
+    romTop:165, romBottom:50, romTargetPct:75,
+    poses:GP.bicep_curl,
+    requiredGroups:["LShoulderElbow","RShoulderElbow","LElbowWrist","RElbowWrist"],
+    frameHint:"Show full arms — shoulders to wrists",
+    prompts:{down:"▼  Lower Arms", up:"▲  Curl Up", good_down:"✓  Full Curl!", wait:"Stand facing camera"},
+    check(a){ const v=avgElbow(a); if(v===null)return{phase:null}; if(v>140)return{phase:"down"}; if(v<70)return{phase:"up"}; return{phase:"mid"}; },
+    romValue(a){ return avgElbow(a); }
+  },
+  arm_raise:{
+    name:"Arm Raises", type:"rep", target:10,
+    joints:["LShoulder","RShoulder"],
+    romTop:10, romBottom:90, romTargetPct:75,
+    poses:GP.arm_raise,
+    requiredGroups:["LShoulderElbow","RShoulderElbow","LElbowWrist","RElbowWrist","LHip","RHip"],
+    frameHint:"Show full body — head to hips, arms fully extended",
+    prompts:{down:"▼  Lower Arms", up:"▲  Raise Arms", good_down:"✓  Full Height!", wait:"Face camera, arms at sides"},
+    check(a){ const v=avgShoulder(a); if(v===null)return{phase:null}; if(v<35)return{phase:"down"}; if(v>70)return{phase:"up"}; return{phase:"mid"}; },
+    romValue(a){ return avgShoulder(a); }
+  },
+  shoulder_press:{
+    name:"Shoulder Press", type:"rep", target:10,
+    joints:["LElbow","RElbow"],
+    romTop:160, romBottom:85, romTargetPct:80,
+    poses:GP.shoulder_press,
+    requiredGroups:["LShoulderElbow","RShoulderElbow","LElbowWrist","RElbowWrist"],
+    frameHint:"Show full arms — shoulders to wrists, overhead included",
+    prompts:{down:"▼  Lower Hands", up:"▲  Press Up", good_down:"✓  Arms Extended!", wait:"Face camera, hands at shoulders"},
+    check(a){ const v=avgElbow(a); if(v===null)return{phase:null}; if(v<100)return{phase:"up"}; if(v>140)return{phase:"down"}; return{phase:"mid"}; },
+    romValue(a){ return avgElbow(a); }
+  },
+  chest_stretch:{
+    name:"Chest Stretch", type:"hold", target:5, holdTarget:5,
+    joints:["LShoulder","RShoulder"],
+    romTop:20, romBottom:90, romTargetPct:70,
+    poses:GP.chest_stretch,
+    requiredGroups:["LShoulderElbow","RShoulderElbow","LElbowWrist","RElbowWrist"],
+    frameHint:"Show full arms outstretched — shoulders to wrists",
+    prompts:{hold:"Hold the stretch…", rest:"Open arms wider", wait:"Face camera, arms ready"},
+    check(a){ const v=avgShoulder(a); if(v===null)return{phase:null}; if(v>70)return{phase:"hold"}; return{phase:"rest"}; },
+    romValue(a){ return avgShoulder(a); }
+  },
+  squat:{
+    name:"Sit-to-Stand", type:"rep", target:10,
+    joints:["LKnee","RKnee"],
+    romTop:170, romBottom:90, romTargetPct:75,
+    poses:GP.squat,
+    requiredGroups:["LHipKnee","RHipKnee","LKneeAnkle","RKneeAnkle"],
+    frameHint:"Show full lower body — hips to ankles (stand sideways)",
+    prompts:{down:"▼  Sit Down", up:"▲  Stand Up", good_down:"✓  Good Depth!", wait:"Stand sideways to camera"},
+    check(a){ const v=avgKnee(a); if(v===null)return{phase:null}; if(v>155)return{phase:"up"}; if(v<110)return{phase:"down"}; return{phase:"mid"}; },
+    romValue(a){ return avgKnee(a); }
+  },
+  knee_raise:{
+    name:"Knee Raises", type:"rep", target:10,
+    joints:["LKnee","RKnee"],
+    romTop:160, romBottom:70, romTargetPct:70,
+    poses:GP.knee_raise,
+    requiredGroups:["LHipKnee","RHipKnee","LKneeAnkle","RKneeAnkle"],
+    frameHint:"Show full lower body — hips to ankles",
+    prompts:{down:"▼  Lower Leg", up:"▲  Raise Knee", good_down:"✓  Great Height!", wait:"Stand facing camera"},
+    check(a){ const v=Math.min(a.LKnee||180,a.RKnee||180); if(v===180)return{phase:null}; if(v<90)return{phase:"up"}; if(v>155)return{phase:"down"}; return{phase:"mid"}; },
+    romValue(a){ return Math.min(a.LKnee||180,a.RKnee||180); }
+  },
+  calf_raise:{
+    name:"Calf Raises", type:"hold", target:8, holdTarget:3,
+    joints:["LKnee","RKnee"],
+    romTop:0, romBottom:100, romTargetPct:80,
+    poses:GP.calf_raise,
+    requiredGroups:["LKneeAnkle","RKneeAnkle","LHipKnee","RHipKnee"],
+    frameHint:"Show full lower body — knees & ankles must be visible",
+    prompts:{hold:"Hold on toes…", rest:"Rise up onto toes", wait:"Stand facing camera"},
+    check(){ return{phase:"hold"}; },
+    romValue(){ return null; }
+  },
+  t_pose:{
+    name:"T-Pose Hold", type:"hold", target:3, holdTarget:5,
+    joints:["LShoulder","RShoulder"],
+    romTop:20, romBottom:90, romTargetPct:80,
+    poses:GP.t_pose,
+    requiredGroups:["LShoulderElbow","RShoulderElbow","LElbowWrist","RElbowWrist","LHip","RHip"],
+    frameHint:"Show full upper body — shoulders, elbows, wrists & hips",
+    prompts:{hold:"Hold the T-Pose…", rest:"Raise arms to shoulder height", wait:"Face camera, arms ready"},
+    check(a){ const v=avgShoulder(a); if(v===null)return{phase:null}; if(v>75)return{phase:"hold"}; return{phase:"rest"}; },
+    romValue(a){ return avgShoulder(a); }
+  },
+};
+
+function avgElbow(a){ if(!a.LElbow&&!a.RElbow)return null; return Math.round(((a.LElbow||0)+(a.RElbow||0))/(a.LElbow&&a.RElbow?2:1)); }
+function avgShoulder(a){ if(!a.LShoulder&&!a.RShoulder)return null; return Math.round(((a.LShoulder||0)+(a.RShoulder||0))/(a.LShoulder&&a.RShoulder?2:1)); }
+function avgKnee(a){ if(!a.LKnee&&!a.RKnee)return null; return Math.round(((a.LKnee||0)+(a.RKnee||0))/(a.LKnee&&a.RKnee?2:1)); }
+
+// ── VISIBILITY CHECK ──────────────────────────────────────────────────────────
+// Returns { ok: bool, missing: [string] }
+// A group passes if ALL its landmark indices are visible above the threshold.
+// We accept "at least one side visible" for bilateral groups (L+R pairs)
+// so that one-arm exercises still work — but single-required groups must pass.
+const VIS_THRESHOLD = 0.45;
+
+function checkRequiredParts(lm, requiredGroups) {
+  const missing = [];
+  for (const groupKey of requiredGroups) {
+    const [label, indices] = LM_GROUPS[groupKey];
+    const allVisible = indices.every(i => lm[i] && lm[i].visibility >= VIS_THRESHOLD);
+    if (!allVisible) missing.push(label);
+  }
+  return { ok: missing.length === 0, missing };
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+// STATE
+let poseLandmarker=null, running=false, currentEx="pushup";
+let repCount=0, repPhase="up", holdStart=null, sessionLog=[], bodyDetected=false, showGhost=false;
+// Tracks whether parts were missing last frame (to throttle warning flicker)
+let partsOk=true;
+
+const video=document.getElementById("video"), canvas=document.getElementById("canvas"), ctx=canvas.getContext("2d");
+const repCountEl=document.getElementById("repCount"), progressFill=document.getElementById("progressFill");
+const statModeLabel=document.getElementById("statModeLabel"), statSub=document.getElementById("statSub");
+const detectionBadge=document.getElementById("detectionBadge"), stepPrompt=document.getElementById("stepPrompt");
+const holdRingContainer=document.getElementById("holdRingContainer"), holdArc=document.getElementById("holdArc"), holdTimerEl=document.getElementById("holdTimer");
+const logEntries=document.getElementById("logEntries");
+const romFill=document.getElementById("romFill"), romTargetLine=document.getElementById("romTargetLine");
+const romPct=document.getElementById("romPct"), romPctLabel=document.getElementById("romPctLabel");
+const partsWarning=document.getElementById("partsWarning");
+const ARC_LEN=213.6;
+
+// ANGLE MATH
+function angle3(a,b,c){
+  if(!a||!b||!c)return null;
+  const ab=[a.x-b.x,a.y-b.y],cb=[c.x-b.x,c.y-b.y];
+  const dot=ab[0]*cb[0]+ab[1]*cb[1];
+  const mag=Math.sqrt((ab[0]**2+ab[1]**2))*Math.sqrt((cb[0]**2+cb[1]**2));
+  if(!mag)return null;
+  return Math.round(Math.acos(Math.max(-1,Math.min(1,dot/mag)))*180/Math.PI);
+}
+function getAngles(lm){
+  const vis=l=>l&&l.visibility>0.45;
+  const L={s:lm[11],e:lm[13],w:lm[15],h:lm[23],k:lm[25],a:lm[27]};
+  const R={s:lm[12],e:lm[14],w:lm[16],h:lm[24],k:lm[26],a:lm[28]};
+  return{
+    LElbow: vis(L.s)&&vis(L.e)&&vis(L.w)?angle3(L.s,L.e,L.w):null,
+    RElbow: vis(R.s)&&vis(R.e)&&vis(R.w)?angle3(R.s,R.e,R.w):null,
+    LShoulder: vis(L.h)&&vis(L.s)&&vis(L.e)?angle3(L.h,L.s,L.e):null,
+    RShoulder: vis(R.h)&&vis(R.s)&&vis(R.e)?angle3(R.h,R.s,R.e):null,
+    LKnee: vis(L.h)&&vis(L.k)&&vis(L.a)?angle3(L.h,L.k,L.a):null,
+    RKnee: vis(R.h)&&vis(R.k)&&vis(R.a)?angle3(R.h,R.k,R.a):null,
+  };
+}
+
+// GHOST POSE
+function drawGhostPose(lm, poseKey){
+  const ex=EXERCISES[currentEx];
+  if(!ex.poses)return;
+  const poses=ex.poses, key=poses[poseKey]?poseKey:(poses.hold?"hold":(poses.rest?"rest":"up"));
+  const joints=poses[key]; if(!joints)return;
+  const ls=lm[11],rs=lm[12]; if(!ls||!rs)return;
+  const W=canvas.width,H=canvas.height;
+  const cx=((ls.x+rs.x)/2)*W, cy=((ls.y+rs.y)/2)*H;
+  const sw=Math.abs(rs.x-ls.x)*W;
+  const scale=sw*0.85; if(scale<10)return;
+  const S=pt=>({x:cx+pt.x*scale, y:cy+pt.y*scale});
+  ctx.save();
+  ctx.setLineDash([7,5]); ctx.strokeStyle="rgba(201,167,123,0.42)"; ctx.lineWidth=2.5;
+  for(const[a,b]of GC){
+    const pA=S(joints[a]),pB=S(joints[b]);
+    ctx.beginPath(); ctx.moveTo(pA.x,pA.y); ctx.lineTo(pB.x,pB.y); ctx.stroke();
+  }
+  ctx.setLineDash([]); ctx.fillStyle="rgba(201,167,123,0.5)";
+  for(const pt of joints){ const p=S(pt); ctx.beginPath(); ctx.arc(p.x,p.y,8,0,Math.PI*2); ctx.fill(); }
+  ctx.restore();
+}
+
+// LIVE SKELETON — highlights missing joints in red
+const SKEL=[[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28]];
+const SKEL_POINTS = new Set(SKEL.flat());
+function drawSkeleton(lm, missingIndices){
+  const W=canvas.width,H=canvas.height;
+  const missingSet=new Set(missingIndices||[]);
+  ctx.setLineDash([]);
+  for(const[a,b]of SKEL){
+    const lA=lm[a],lB=lm[b]; if(!lA||!lB||lA.visibility<0.3||lB.visibility<0.3)continue;
+    const isWarning=missingSet.has(a)||missingSet.has(b);
+    ctx.strokeStyle=isWarning?"rgba(145,90,58,0.7)":"rgba(201,167,123,0.6)";
+    ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.moveTo(lA.x*W,lA.y*H); ctx.lineTo(lB.x*W,lB.y*H); ctx.stroke();
+  }
+  // Map joint names used by exercises to their primary landmark index
+  const JOINT_TO_INDEX = {LElbow:13,RElbow:14,LShoulder:11,RShoulder:12,LKnee:25,RKnee:26};
+  const ex = EXERCISES[currentEx]||{};
+  const targetIndices = new Set((ex.joints||[]).map(j=>JOINT_TO_INDEX[j]).filter(Boolean));
+
+  for(const i of SKEL_POINTS){
+    const l=lm[i];
+    if(!l||l.visibility<0.4)continue;
+    const isWarning=missingSet.has(i);
+    const isTarget = targetIndices.has(i);
+    ctx.beginPath(); ctx.arc(l.x*W,l.y*H,7,0,Math.PI*2);
+    if(isWarning) ctx.fillStyle = "rgba(145,90,58,0.9)"; // brown for missing
+    else if(isTarget) ctx.fillStyle = "rgba(201,167,123,0.95)"; // beige for current target joints
+    else ctx.fillStyle = "rgba(216,186,148,0.9)"; // light beige default
+    ctx.fill();
+  }
+}
+
+// ROM BAR
+function updateROM(angles){
+  const ex=EXERCISES[currentEx];
+  const val=ex.romValue(angles);
+  if(val===null){romPct.textContent="—"; romFill.style.height="0%"; return;}
+  const range=Math.abs(ex.romBottom-ex.romTop);
+  let pct;
+  if(ex.romBottom<ex.romTop) pct=Math.round(((ex.romTop-val)/range)*100);
+  else pct=Math.round(((val-ex.romTop)/range)*100);
+  pct=Math.max(0,Math.min(100,pct));
+  romFill.style.height=pct+"%";
+  romPct.textContent=pct+"%";
+  romFill.className="rom-bar-fill"+(pct>=ex.romTargetPct?" deep":pct>=ex.romTargetPct*0.5?" partial":"");
+  romTargetLine.style.bottom=ex.romTargetPct+"%";
+}
+
+// STEP PROMPT
+function setPrompt(text, style){
+  // style: "normal" | "good" | "warn"
+  if(!text){stepPrompt.classList.remove("show","good","warn");return;}
+  stepPrompt.textContent=text;
+  stepPrompt.classList.add("show");
+  stepPrompt.classList.toggle("good", style==="good");
+  stepPrompt.classList.toggle("warn", style==="warn");
+}
+
+// PARTS WARNING BANNER
+function setPartsWarning(missing){
+  if(!missing||missing.length===0){
+    partsWarning.classList.remove("show");
+    partsWarning.textContent="";
+    return;
+  }
+  // Deduplicate and show max 3 to keep it short
+  const shown = missing.slice(0,3).join(", ");
+  partsWarning.textContent = `⚠ Move into frame: ${shown}`;
+  partsWarning.classList.add("show");
+}
+
+// REP LOGIC (only fires when parts ok)
+function processReps(phase){
+  const ex=EXERCISES[currentEx];
+  if(phase===null){setPrompt(ex.prompts.wait);return;}
+  if(phase==="up"&&repPhase==="down"){
+    repPhase="up"; setPrompt(ex.prompts.down);
+  } else if(phase==="down"&&repPhase==="up"){
+    repPhase="down"; addRep();
+    setPrompt(ex.prompts.good_down||"✓ Rep counted!","good");
+    setTimeout(()=>setPrompt(ex.prompts.up),900);
+    return;
+  }
+  if(phase!=="mid") setPrompt(repPhase==="up"?ex.prompts.down:ex.prompts.up);
+}
+
+function processHold(phase){
+  const ex=EXERCISES[currentEx];
+  if(phase==="hold"){
+    if(!holdStart)holdStart=Date.now();
+    const e=(Date.now()-holdStart)/1000, frac=Math.min(e/ex.holdTarget,1);
+    holdArc.style.strokeDashoffset=ARC_LEN*(1-frac);
+    holdTimerEl.textContent=Math.floor(e)+"s";
+    holdRingContainer.classList.add("visible");
+    setPrompt(ex.prompts.hold);
+    if(e>=ex.holdTarget){addRep();holdStart=null;}
+  } else {
+    holdStart=null; holdArc.style.strokeDashoffset=ARC_LEN; holdTimerEl.textContent="0s";
+    holdRingContainer.classList.remove("visible");
+    setPrompt(phase===null?ex.prompts.wait:ex.prompts.rest);
+  }
+}
+
+// Pause hold timer & warn when parts go missing
+function pauseHold(){
+  if(holdStart){ holdStart=null; holdArc.style.strokeDashoffset=ARC_LEN; holdTimerEl.textContent="0s"; }
+  holdRingContainer.classList.remove("visible");
+}
+
+function addRep(){
+  const ex=EXERCISES[currentEx]; repCount++;
+  repCountEl.classList.remove("pop"); void repCountEl.offsetWidth; repCountEl.classList.add("pop");
+  repCountEl.textContent=repCount;
+  progressFill.style.width=Math.min(repCount/ex.target*100,100)+"%";
+  const now=new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  sessionLog.unshift({time:now,text:`${ex.name} — ${ex.type==="hold"?"Hold":"Rep"} ${repCount}`});
+  renderLog();
+}
+function renderLog(){
+  if(!sessionLog.length){logEntries.innerHTML='<div class="log-entry" style="color:var(--muted);font-size:11px">No reps yet</div>';return;}
+  logEntries.innerHTML=sessionLog.slice(0,12).map(e=>`<div class="log-entry"><span>${e.text}</span><span class="log-time">${e.time}</span></div>`).join("");
+}
+
+function updateAngleReadouts(angles, missingGroups){
+  // Collect all landmark indices flagged as missing so we can highlight
+  const missingJoints = new Set();
+  for(const gk of (missingGroups||[])){
+    if(LM_GROUPS[gk]){
+      // Map landmark indices → joint names for highlighting
+    }
+  }
+  [["LElbow","aLElbow"],["RElbow","aRElbow"],["LShoulder","aLShoulder"],["RShoulder","aRShoulder"],["LKnee","aLKnee"],["RKnee","aRKnee"]].forEach(([k,id])=>{
+    const ex=EXERCISES[currentEx];
+    const el=document.getElementById(id),v=angles[k];
+    el.textContent=v!==null?v+"°":"—°";
+    el.classList.remove("active","missing");
+    if(ex.joints.includes(k)){
+      if(v!==null) el.classList.add("active");
+      else el.classList.add("missing");
+    }
+  });
+}
+
+// ── Get all landmark indices that are part of the required groups but not visible ──
+function getMissingLandmarkIndices(lm, requiredGroups){
+  const missing=new Set();
+  for(const gk of requiredGroups){
+    if(!LM_GROUPS[gk])continue;
+    const [,indices]=LM_GROUPS[gk];
+    for(const i of indices){
+      if(!lm[i]||lm[i].visibility<VIS_THRESHOLD) missing.add(i);
+    }
+  }
+  return [...missing];
+}
+
+// MAIN LOOP
+function detect(){
+  if(!running)return;
+  if(!poseLandmarker||video.readyState<2){requestAnimationFrame(detect);return;}
+  canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const results=poseLandmarker.detectForVideo(video,performance.now());
+  if(results.landmarks&&results.landmarks.length>0){
+    const lm=results.landmarks[0];
+    const angles=getAngles(lm);
+    const ex=EXERCISES[currentEx];
+
+    // ── VISIBILITY CHECK ──────────────────────────────────────────────────
+    const {ok, missing} = checkRequiredParts(lm, ex.requiredGroups);
+    const missingLmIndices = ok ? [] : getMissingLandmarkIndices(lm, ex.requiredGroups);
+    partsOk = ok;
+
+    drawSkeleton(lm, missingLmIndices); // pass missing indices for red highlight
+    updateAngleReadouts(angles, missing);
+    updateROM(angles);
+    if(!bodyDetected){bodyDetected=true;detectionBadge.classList.add("detected");detectionBadge.textContent="Body detected ✓";}
+
+    if(!ok){
+      // Parts missing — block counting, show warning
+      detectionBadge.classList.remove("detected");
+      detectionBadge.classList.add("warn");
+      detectionBadge.textContent="Parts out of frame ⚠";
+      setPartsWarning(missing);
+      setPrompt(`Step back — ${ex.frameHint}`, "warn");
+      if(ex.type==="hold") pauseHold();
+      holdRingContainer.classList.remove("visible");
+    } else {
+      // All good — clear warning, run exercise logic
+      detectionBadge.classList.add("detected");
+      detectionBadge.classList.remove("warn");
+      detectionBadge.textContent="Body detected ✓";
+      setPartsWarning(null);
+      const {phase}=ex.check(angles);
+      if(ex.type==="rep"){holdRingContainer.classList.remove("visible");processReps(phase);}
+      else processHold(phase);
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
+  } else {
+    if(bodyDetected){bodyDetected=false;detectionBadge.classList.remove("detected","warn");detectionBadge.textContent="No body detected";}
+    holdStart=null; holdRingContainer.classList.remove("visible");
+    romFill.style.height="0%"; romPct.textContent="—";
+    setPartsWarning(null);
+    setPrompt(EXERCISES[currentEx].prompts.wait);
+  }
+  requestAnimationFrame(detect);
+}
+
+// CAMERA
+window.startCamera=async function(){
+  document.getElementById("placeholder").style.display="none";
+  const sp=document.getElementById("loadingSpinner"); sp.style.display="flex";
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({video:{width:1280,height:720}});
+    video.srcObject=stream; await new Promise(r=>video.onloadedmetadata=r);
+    video.play(); video.classList.add("visible");
+    document.getElementById("loadingMsg").textContent="Loading pose model…";
+    const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    poseLandmarker=await PoseLandmarker.createFromOptions(vision,{
+      baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",delegate:"GPU"},
+      runningMode:"VIDEO",numPoses:1
+    });
+    sp.style.display="none";
+    detectionBadge.classList.add("visible");
+    document.getElementById("statusDot").classList.add("live");
+    document.getElementById("statusText").textContent="live";
+    running=true; setPrompt(EXERCISES[currentEx].prompts.wait); detect();
+  }catch(e){
+    sp.style.display="none";
+    document.getElementById("placeholder").style.display="flex";
+    document.getElementById("placeholderMsg").textContent="Camera error: "+e.message;
+  }
+};
+
+window.selectExercise=function(btn){
+  document.querySelectorAll(".exercise-btn").forEach(b=>b.classList.remove("active")); btn.classList.add("active");
+  currentEx=btn.dataset.ex; resetStats(false);
+  const ex=EXERCISES[currentEx];
+  statModeLabel.textContent=ex.type==="hold"?"Holds":"Reps";
+  statSub.textContent=`of ${ex.target} target`;
+  romPctLabel.textContent="depth"; romTargetLine.style.bottom=ex.romTargetPct+"%";
+  holdRingContainer.classList.remove("visible"); repPhase="up";
+  setPartsWarning(null);
+  if(running) setPrompt(ex.prompts.wait);
+};
+
+// Ghost feature removed: toggleGhost is kept as a no-op for compatibility.
+window.toggleGhost=function(){
+  return;
+};
+
+window.resetStats=function(clearLog=true){
+  repCount=0; repPhase="up"; holdStart=null;
+  repCountEl.textContent="0"; progressFill.style.width="0%";
+  if(clearLog){sessionLog=[];renderLog();}
+  holdArc.style.strokeDashoffset=ARC_LEN; holdTimerEl.textContent="0s";
+  holdRingContainer.classList.remove("visible"); romFill.style.height="0%"; romPct.textContent="—";
+};
+
+statModeLabel.textContent="Reps"; statSub.textContent="of 10 target";
+romTargetLine.style.bottom=EXERCISES[currentEx].romTargetPct+"%";
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<style>
+  .sidebar { width: 250px; min-width: 250px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 16px 12px; gap: 8px; overflow-y: auto; }
+  .sidebar-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1.6px; color: var(--muted); padding: 0 4px; margin-bottom: 4px; }
+  .exercise-btn { background: transparent; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; color: var(--text); font-family: var(--mono); font-size: 15px; text-align: left; cursor: pointer; transition: all 0.15s; display: flex; flex-direction: column; gap: 4px; }
+  .exercise-btn:hover { background: var(--surface2); border-color: var(--muted); }
+  .exercise-btn.active { border-color: var(--accent); background: rgba(201,167,123,0.12); }
+  .exercise-btn .name { font-weight: 600; font-size: 16px; }
+  .exercise-btn .meta { font-size: 13px; color: var(--muted); }
+  .exercise-btn .tag { display: inline-block; font-size: 11px; padding: 3px 6px; border-radius: 5px; margin-top: 4px; background: var(--border); color: var(--muted); }
+  .exercise-btn.active .tag { background: rgba(201,167,123,0.22); color: var(--accent); }
+  .divider { height: 1px; background: var(--border); margin: 8px 0; }
+</style>
+
+<aside class="sidebar">
+  <div class="sidebar-label">Upper Body</div>
+  <button class="exercise-btn" data-ex="arm_raise" onclick="selectExercise(this)">
+    <span class="name">Arm Raises</span><span class="meta">Reps · shoulder</span><span class="tag">seated ok</span>
+  </button>
+  <button class="exercise-btn" data-ex="bicep_curl" onclick="selectExercise(this)">
+    <span class="name">Bicep Curls</span><span class="meta">Reps · elbow flex</span><span class="tag">seated ok</span>
+  </button>
+  <button class="exercise-btn active" data-ex="pushup" onclick="selectExercise(this)">
+    <span class="name">Push-Up</span><span class="meta">Reps · elbow + chest</span><span class="tag">floor</span>
+  </button>
+  <button class="exercise-btn" data-ex="shoulder_press" onclick="selectExercise(this)">
+    <span class="name">Shoulder Press</span><span class="meta">Reps · overhead</span><span class="tag">seated ok</span>
+  </button>
+  <button class="exercise-btn" data-ex="chest_stretch" onclick="selectExercise(this)">
+    <span class="name">Chest Stretch</span><span class="meta">Hold · pec stretch</span><span class="tag">hold 5s</span>
+  </button>
+  <div class="divider"></div>
+  <!-- Lower Body exercises removed -->
+  <div class="sidebar-label">Full Body</div>
+  <button class="exercise-btn" data-ex="t_pose" onclick="selectExercise(this)">
+    <span class="name">T-Pose Hold</span><span class="meta">Hold · core + shoulder</span><span class="tag">hold 5s</span>
+  </button>
+</aside>

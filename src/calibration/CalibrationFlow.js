@@ -18,7 +18,7 @@
  */
 
 import { CALIBRATION_STEPS, CORE_STEPS } from './calibrationSteps.js'
-import { jointAngleForStep, smoothAngle } from './jointAngles.js'
+import { areStepLandmarksVisible, jointAngleForStep, smoothAngle } from './jointAngles.js'
 import { ROMCapture } from './romCapture.js'
 import {
   createEmptyProfile,
@@ -27,11 +27,11 @@ import {
 } from './mobilityProfile.js'
 
 // How long to count down before capture starts (give user time to get into position)
-const COUNTDOWN_MS = 3000
+const COUNTDOWN_MS = 10000
 // How long the actual hold / capture window lasts
-const HOLD_MS = 2500
+const HOLD_MS = 4000
 // Rest pause between steps
-const REST_MS = 1500
+const REST_MS = 4500
 
 export class CalibrationFlow {
   /**
@@ -78,6 +78,7 @@ export class CalibrationFlow {
 
     // Compute current joint angle (smoothed)
     let rawAngle = null
+    this._landmarksReady = landmarks ? areStepLandmarksVisible(landmarks, step) : false
     if (landmarks) {
       rawAngle = jointAngleForStep(landmarks, step)
     }
@@ -85,6 +86,11 @@ export class CalibrationFlow {
 
     // Phase transitions
     if (this._phase === 'countdown') {
+      if (!landmarks || !areStepLandmarksVisible(landmarks, step)) {
+        this._emitUpdate()
+        return
+      }
+
       if (elapsed >= COUNTDOWN_MS) {
         this._enterHold()
         return
@@ -213,6 +219,7 @@ export class CalibrationFlow {
 
       // Result from the most recently completed step
       lastResult: this._currentStepResult,
+      landmarksReady: Boolean(this._landmarksReady),
 
       // Partial profile so far (for progress display)
       profile: this._profile,

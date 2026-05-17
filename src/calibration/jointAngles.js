@@ -84,6 +84,14 @@ export function jointAngleForStep(landmarks, step) {
   return jointAngle(landmarks, idxA, idxVertex, idxB)
 }
 
+export function areStepLandmarksVisible(landmarks, step, minVis = 0.5) {
+  const [idxA, idxVertex, idxB] = step.landmarks
+  return [idxA, idxVertex, idxB].every((index) => {
+    const lm = landmarks[index]
+    return !!lm && lm.visibility >= minVis
+  })
+}
+
 /**
  * Smooth an angle reading using exponential moving average.
  * Reduces jitter from single-frame noise.

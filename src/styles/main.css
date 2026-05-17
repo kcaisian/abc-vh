@@ -2,7 +2,7 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root {
+/* :root {
   --bg: #0a0e14;
   --surface: #111820;
   --surface2: #1a2333;
@@ -12,6 +12,21 @@
   --danger: #f75050;
   --text: #e8f0fe;
   --text-muted: #7a8fa8;
+  --radius: 12px;
+  --font: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+} */
+
+:root {
+  --bg: #413528;
+  --surface: #413528;
+  --surface2: #1a2333;
+  --accent: #763C44;
+  --accent2: #A33C4B;
+  --warn: #f7c94f;
+  --danger: #f75050;
+  --text: #e8f0fe;
+  --text-muted: #4C393C;
   --radius: 12px;
   --font: 'DM Sans', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -34,7 +49,7 @@ button:active { transform: scale(0.97); }
 
 .btn-primary {
   background: var(--accent);
-  color: #001a14;
+  color: #E6D3D4;
   font-weight: 600;
   padding: 12px 28px;
 }
